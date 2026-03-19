@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CatsMap — Keyboard Adaptation Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fdf8f0;
+    --cream2: #f5eedc;
+    --cream3: #ece3cc;
+    --ink: #2d2010;
+    --ink2: #5c4020;
+    --ink3: #9c7850;
+    --orange: #e8621a;
+    --orange2: #f07830;
+    --green: #3a9a50;
+    --red: #d84040;
+    --blue: #3878c8;
+    --amber: #c08000;
+    --border: #ddd0b0;
+    --font-title: 'Fredoka One', cursive;
+    --font-body: 'Nunito', sans-serif;
+    --font-mono: 'Courier New', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--cream); color:var(--ink); font-family:var(--font-body); min-height:100vh; overflow-x:hidden; }
+
+  /* ── BACKGROUND ── */
+  .bg-layer { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+  .bg-cat { position:absolute; opacity:0.07; animation:bgRise linear infinite; }
+  @keyframes bgRise { 0%{transform:translateY(110vh) rotate(-5deg);opacity:0} 5%{opacity:0.07} 95%{opacity:0.07} 100%{transform:translateY(-150px) rotate(5deg);opacity:0} }
+  .wander-cat { position:fixed; pointer-events:none; z-index:1; opacity:0.5; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.07)); }
+
+  /* ── LAYOUT ── */
+  .app { position:relative; z-index:2; max-width:860px; margin:0 auto; padding:1.75rem 1.5rem 5rem; }
+
+  /* ── HEADER ── */
+  .header { text-align:center; margin-bottom:1.75rem; position:relative; padding:0 90px; }
+  .logo { font-family:var(--font-title); font-size:2.8rem; color:var(--orange); line-height:1; text-shadow:3px 3px 0 #c04800; }
+  .tagline { font-size:0.78rem; color:var(--ink3); font-weight:600; margin-top:0.2rem; letter-spacing:0.04em; }
+  .header-cat-left { position:absolute; left:0; top:0; animation:sideBounce 2.2s ease-in-out infinite; }
+  .header-cat-right { position:absolute; right:0; top:0; animation:sideBounce 2.2s ease-in-out infinite 0.5s; }
+  @keyframes sideBounce { 0%,100%{transform:translateY(0) rotate(-3deg)} 50%{transform:translateY(-8px) rotate(3deg)} }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:0.4rem; margin-bottom:1.5rem; justify-content:center; flex-wrap:wrap; }
+  .tab { background:white; border:2.5px solid var(--border); border-radius:50px; font-family:var(--font-body); font-size:0.78rem; font-weight:800; color:var(--ink3); padding:0.45rem 1.2rem; cursor:pointer; transition:all 0.2s; }
+  .tab:hover { border-color:var(--orange); color:var(--orange); transform:translateY(-2px); }
+  .tab.active { background:var(--orange); border-color:var(--orange); color:white; box-shadow:0 4px 12px rgba(232,98,26,0.35); transform:translateY(-2px); }
+
+  /* ── PANELS ── */
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  /* ── SETUP PANEL ── */
+  .setup-section { margin-bottom:1.75rem; }
+  .setup-section-title { font-size:0.82rem; font-weight:800; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; }
+  .setup-section-title::after { content:''; flex:1; height:1.5px; background:var(--border); }
+
+  .kb-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
+  .setup-card { background:white; border:2.5px solid var(--border); border-radius:16px; padding:1.1rem; cursor:pointer; transition:all 0.15s; }
+  .setup-card:hover { border-color:var(--orange2); transform:translateY(-2px); }
+  .setup-card.selected { border-color:var(--orange); background:#fff8f4; box-shadow:0 4px 16px rgba(232,98,26,0.2); }
+  .setup-card-top { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; }
+  .setup-card-icon { font-size:1.3rem; }
+  .setup-card-title { font-size:0.82rem; font-weight:800; }
+  .setup-card-sub { font-size:0.7rem; color:var(--ink3); line-height:1.4; }
+
+  .transition-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.65rem; }
+  .trans-card { background:var(--cream2); border:2px solid var(--border); border-radius:12px; padding:0.8rem; cursor:pointer; transition:all 0.15s; text-align:center; }
+  .trans-card:hover { border-color:var(--orange2); }
+  .trans-card.selected { border-color:var(--orange); background:#fff8f4; }
+  .trans-from { font-size:0.65rem; color:var(--ink3); font-family:var(--font-mono); }
+  .trans-arrow { font-size:1rem; color:var(--orange); margin:0.15rem 0; }
+  .trans-to { font-size:0.65rem; font-weight:700; color:var(--ink2); font-family:var(--font-mono); }
+
+  .prof-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0.65rem; }
+  .prof-card { background:var(--cream2); border:2px solid var(--border); border-radius:12px; padding:0.8rem 1rem; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:0.65rem; }
+  .prof-card:hover { border-color:var(--orange2); }
+  .prof-card.selected { border-color:var(--orange); background:#fff8f4; }
+  .prof-icon { font-size:1.2rem; flex-shrink:0; }
+  .prof-name { font-size:0.78rem; font-weight:800; }
+  .prof-sub { font-size:0.6rem; color:var(--ink3); margin-top:0.1rem; }
+
+  .btn-start { background:var(--orange); border:none; border-radius:50px; color:white; font-family:var(--font-body); font-size:0.85rem; font-weight:800; padding:0.75rem 3rem; cursor:pointer; box-shadow:0 4px 16px rgba(232,98,26,0.4); transition:all 0.2s; display:block; margin:0 auto; }
+  .btn-start:hover { background:var(--orange2); transform:translateY(-2px); box-shadow:0 6px 20px rgba(232,98,26,0.5); }
+
+  /* ── DRILL PANEL ── */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.65rem; margin-bottom:1.25rem; }
+  .stat-card { background:white; border:2.5px solid var(--border); border-radius:14px; padding:0.7rem; text-align:center; }
+  .stat-cat { display:block; margin:0 auto 3px; }
+  .stat-val { font-family:var(--font-title); font-size:1.5rem; color:var(--ink); line-height:1; }
+  .stat-val.good { color:var(--green); }
+  .stat-val.warn { color:var(--amber); }
+  .stat-val.bad { color:var(--red); }
+  .stat-lbl { font-size:0.55rem; color:var(--ink3); font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-top:2px; }
+
+  .progress-wrap { background:white; border:2.5px solid var(--border); border-radius:50px; height:12px; margin-bottom:1.25rem; overflow:hidden; position:relative; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--orange),#f8b840); border-radius:50px; transition:width 0.15s; }
+
+  .phase-bar { display:flex; gap:4px; margin-bottom:1.25rem; }
+  .phase { flex:1; height:3px; background:var(--border); border-radius:2px; transition:background 0.3s; }
+  .phase.active { background:var(--orange); }
+  .phase.done { background:var(--green); }
+
+  /* ── PHRASE MODE SELECTOR ── */
+  .phrase-selector { background:white; border:2.5px solid var(--border); border-radius:16px; padding:1rem 1.25rem; margin-bottom:1.1rem; }
+  .phrase-selector-title { font-size:0.68rem; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.75rem; }
+  .phrase-cats { display:flex; flex-wrap:wrap; gap:0.4rem; }
+  .phrase-cat { background:var(--cream2); border:2px solid var(--border); border-radius:50px; font-size:0.7rem; font-weight:700; color:var(--ink3); padding:0.28rem 0.8rem; cursor:pointer; transition:all 0.15s; }
+  .phrase-cat:hover { border-color:var(--orange); color:var(--orange); }
+  .phrase-cat.active { background:var(--orange); border-color:var(--orange); color:white; }
+
+  /* ── KEY SECTION ── */
+  .key-section { background:white; border:2.5px solid var(--border); border-radius:16px; padding:1rem 1.1rem; margin-bottom:1.1rem; }
+  .key-section-title { font-size:0.68rem; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.65rem; }
+  .key-grid { display:flex; flex-wrap:wrap; gap:0.3rem; }
+  .key-chip { background:var(--cream2); border:2px solid var(--border); border-radius:9px; font-family:var(--font-mono); font-size:0.72rem; font-weight:700; padding:0.25rem 0.55rem; cursor:pointer; color:var(--ink2); transition:all 0.12s; user-select:none; position:relative; }
+  .key-chip:hover { border-color:var(--orange); transform:translateY(-1px); }
+  .key-chip.selected { background:var(--orange); border-color:var(--orange); color:white; }
+  .key-chip.blocked { background:#fff0e0; border-color:#e08000; color:#803000; }
+
+  /* ── TYPING CARD ── */
+  .typing-card { background:white; border:3px solid var(--border); border-radius:22px; padding:1.4rem 1.75rem; margin-bottom:1rem; cursor:text; box-shadow:0 4px 20px rgba(0,0,0,0.05); transition:all 0.2s; position:relative; overflow:hidden; }
+  .typing-card::before { content:''; position:absolute; top:0;left:0;right:0; height:4px; background:linear-gradient(90deg,var(--orange),#f8b840,var(--orange)); background-size:200% 100%; animation:shimmer 3s linear infinite; }
+  @keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }
+  .typing-card:focus-within { border-color:var(--orange); box-shadow:0 4px 24px rgba(232,98,26,0.18); }
+  .typing-card.shake { animation:shake 0.25s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  .card-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.4rem; }
+  .drill-info { font-size:0.65rem; font-weight:700; color:var(--ink3); text-transform:uppercase; letter-spacing:0.08em; }
+  .drill-tags-row { display:flex; gap:0.35rem; flex-wrap:wrap; }
+  .drill-tag { padding:0.15rem 0.5rem; border-radius:20px; font-size:0.58rem; font-weight:700; }
+  .tag-orange { background:#fff0e0; color:var(--orange); }
+  .tag-blue { background:#e8f0f8; color:var(--blue); }
+  .tag-green { background:#e8f5e0; color:var(--green); }
+  .tag-purple { background:#f0e8f8; color:#8050c8; }
+
+  #text-display { font-family:var(--font-mono); font-size:1.05rem; line-height:2; word-wrap:break-word; user-select:none; }
+  .char { color:#c8b898; position:relative; transition:color 0.05s; }
+  .char.correct { color:var(--ink2); }
+  .char.incorrect { color:var(--red); background:#fce8e8; border-radius:3px; }
+  .char.cursor::before { content:''; position:absolute; left:0; top:0.1em; bottom:0.1em; width:2px; background:var(--orange); border-radius:1px; animation:blink 0.9s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .char.focus-key { background:#fff8e0; border-radius:2px; }
+  .char.focus-key.correct { background:#e8f5e0; color:var(--green); }
+  .char.focus-key.incorrect { background:#fce8e8; color:var(--red); }
+  #hidden-input { position:absolute; opacity:0; pointer-events:none; width:0; height:0; }
+
+  /* ── ACTION BAR ── */
+  .action-bar { display:flex; gap:0.65rem; align-items:center; margin-bottom:1.75rem; flex-wrap:wrap; }
+  .btn { border-radius:50px; font-family:var(--font-body); font-weight:800; cursor:pointer; transition:all 0.2s; border:none; font-size:0.8rem; padding:0.55rem 1.4rem; }
+  .btn-primary { background:var(--orange); color:white; box-shadow:0 4px 12px rgba(232,98,26,0.35); }
+  .btn-primary:hover { background:var(--orange2); transform:translateY(-2px); }
+  .btn-secondary { background:white; color:var(--ink3); border:2.5px solid var(--border); }
+  .btn-secondary:hover { border-color:var(--orange); color:var(--orange); transform:translateY(-2px); }
+  .btn-danger { background:var(--red); color:white; }
+  .btn-danger:hover { background:#c03030; transform:translateY(-2px); }
+  .shortcut-hint { font-size:0.58rem; color:var(--ink3); font-weight:600; margin-left:auto; }
+  .shortcut-hint kbd { background:var(--cream2); border:1.5px solid var(--border); border-radius:5px; padding:0.1rem 0.4rem; font-family:monospace; font-size:0.58rem; }
+
+  /* ── CAT ATTACK ── */
+  .attack-banner { background:linear-gradient(135deg,#e8621a,#d04000); border-radius:18px; padding:0.9rem 1.4rem; margin-bottom:1.1rem; display:flex; justify-content:space-between; align-items:center; color:white; box-shadow:0 4px 16px rgba(232,98,26,0.4); }
+  .attack-title { font-family:var(--font-title); font-size:1.3rem; }
+  .attack-sub { font-size:0.68rem; opacity:0.9; font-weight:600; margin-top:0.1rem; }
+  .cat-meter { background:white; border:2.5px solid var(--border); border-radius:14px; padding:0.8rem 1.1rem; margin-bottom:1.1rem; display:flex; align-items:center; gap:1rem; }
+  .cat-meter-lbl { font-size:0.65rem; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:0.08em; white-space:nowrap; }
+  .cat-slots { display:flex; gap:5px; flex:1; align-items:center; }
+  .cat-slot { width:34px; height:34px; border-radius:9px; background:var(--cream2); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; transition:all 0.3s; overflow:hidden; }
+  .cat-slot.occupied { background:#fff0e0; border-color:#e08000; animation:catLand 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes catLand { 0%{transform:translateY(-18px) scale(0.5);opacity:0} 60%{transform:translateY(3px) scale(1.1)} 100%{transform:translateY(0) scale(1);opacity:1} }
+  .attack-timer { font-family:var(--font-title); font-size:1.8rem; color:var(--orange); min-width:4rem; text-align:center; }
+  .attack-timer.warn { color:var(--red); animation:timerPulse 0.5s ease-in-out infinite; }
+  @keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .lives { display:flex; gap:4px; font-size:1.2rem; }
+
+  /* ── HEATMAP ── */
+  .heatmap-wrap { background:white; border:2.5px solid var(--border); border-radius:18px; padding:1.4rem; margin-bottom:1.4rem; }
+  .heatmap-title { font-size:0.68rem; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:1.1rem; }
+  .keyboard-visual { display:flex; flex-direction:column; gap:4px; align-items:center; }
+  .kb-row { display:flex; gap:4px; }
+  .kb-key { width:34px; height:32px; border-radius:7px; background:var(--cream2); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-family:monospace; font-size:0.58rem; font-weight:700; color:var(--ink2); position:relative; transition:all 0.3s; }
+  .kb-key.wide { width:50px; } .kb-key.wider { width:60px; } .kb-key.space { width:190px; }
+  .kb-key[data-level="1"] { background:#fff8e0; border-color:#d8b000; color:#806000; }
+  .kb-key[data-level="2"] { background:#fff0d8; border-color:#d08000; color:#804000; }
+  .kb-key[data-level="3"] { background:#fce8e8; border-color:var(--red); color:var(--red); font-weight:900; }
+
+  /* ── GUIDE PANEL ── */
+  .prof-pills { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+  .prof-pill { background:var(--cream2); border:2px solid var(--border); border-radius:50px; font-size:0.7rem; font-weight:700; color:var(--ink3); padding:0.28rem 0.9rem; cursor:pointer; transition:all 0.15s; }
+  .prof-pill:hover { border-color:var(--orange); color:var(--orange); }
+  .prof-pill.active { background:var(--orange); border-color:var(--orange); color:white; }
+
+  .prof-guide { display:none; background:white; border:2.5px solid var(--border); border-radius:18px; padding:1.4rem; margin-bottom:1rem; }
+  .prof-guide.active { display:block; }
+  .prof-guide-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1.1rem; padding-bottom:0.9rem; border-bottom:1.5px solid var(--border); }
+  .prof-guide-icon { font-size:2rem; }
+  .prof-guide-title { font-size:1rem; font-weight:800; }
+  .prof-guide-sub { font-size:0.7rem; color:var(--ink3); margin-top:0.1rem; }
+
+  .habit-list { display:flex; flex-direction:column; gap:0.75rem; list-style:none; }
+  .habit-item { display:flex; gap:0.75rem; align-items:flex-start; }
+  .habit-dot { width:8px; height:8px; min-width:8px; border-radius:50%; background:var(--orange); margin-top:5px; }
+  .habit-text { font-size:0.8rem; line-height:1.5; color:var(--ink2); }
+  .habit-text strong { color:var(--ink); font-weight:800; }
+
+  .general-tips { background:white; border:2.5px solid var(--border); border-radius:18px; padding:1.4rem; margin-bottom:1rem; }
+  .tips-title { font-size:0.68rem; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:1rem; }
+  .tips-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; }
+  .tip-card { background:var(--cream2); border-radius:12px; padding:0.9rem 1rem; }
+  .tip-cat { display:block; margin-bottom:0.4rem; }
+  .tip-title { font-size:0.78rem; font-weight:800; margin-bottom:0.3rem; }
+  .tip-text { font-size:0.74rem; line-height:1.5; color:var(--ink2); }
+
+  /* ── RESULTS ── */
+  .results-overlay { display:none; position:fixed; inset:0; background:rgba(253,248,240,0.92); backdrop-filter:blur(8px); z-index:100; align-items:center; justify-content:center; }
+  .results-overlay.visible { display:flex; animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes popIn { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+  .results-card { background:white; border:3px solid var(--border); border-radius:26px; padding:1.75rem 2.25rem; max-width:460px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.1); }
+  .result-cat-svg { display:block; margin:0 auto 0.65rem; animation:resultSpin 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes resultSpin { from{transform:rotate(-20deg) scale(0)} to{transform:rotate(0) scale(1)} }
+  .result-title { font-family:var(--font-title); font-size:1.7rem; color:var(--orange); margin-bottom:0.2rem; }
+  .result-sub { font-size:0.74rem; color:var(--ink3); font-weight:600; margin-bottom:1.25rem; }
+  .result-grade { font-family:var(--font-title); font-size:3.8rem; line-height:1; margin-bottom:0.4rem; }
+  .grade-s{color:#d89000} .grade-a{color:var(--green)} .grade-b{color:var(--blue)} .grade-c{color:var(--amber)} .grade-d{color:var(--red)}
+  .result-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0.6rem; margin-bottom:1.1rem; }
+  .r-item { background:var(--cream2); border-radius:10px; padding:0.75rem; }
+  .r-val { font-family:var(--font-title); font-size:1.4rem; color:var(--ink); }
+  .r-lbl { font-size:0.55rem; color:var(--ink3); font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
+  .worst-row { display:flex; gap:0.35rem; flex-wrap:wrap; justify-content:center; margin-bottom:1rem; }
+  .worst-badge { background:#fce8e8; color:var(--red); border:2px solid #f0b0b0; border-radius:8px; padding:0.18rem 0.5rem; font-size:0.68rem; font-weight:800; }
+  .advice-box { background:var(--cream2); border-radius:12px; padding:0.8rem; font-size:0.76rem; line-height:1.5; color:var(--ink2); margin-bottom:1.1rem; text-align:left; }
+  .result-actions { display:flex; gap:0.6rem; justify-content:center; }
+
+  /* ── GAME OVER / WIN ── */
+  .game-end { display:none; position:fixed; inset:0; backdrop-filter:blur(8px); z-index:110; align-items:center; justify-content:center; flex-direction:column; text-align:center; color:white; }
+  .game-end.visible { display:flex; animation:fadeIn 0.4s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  #game-over { background:rgba(180,40,40,0.92); }
+  #win-screen { background:rgba(40,140,60,0.92); }
+  .end-cat { display:block; margin:0 auto 1rem; animation:endWiggle 0.5s ease-in-out infinite; }
+  @keyframes endWiggle { 0%,100%{transform:rotate(-8deg) scale(1)} 50%{transform:rotate(8deg) scale(1.05)} }
+  .end-title { font-family:var(--font-title); font-size:3rem; margin-bottom:0.5rem; text-shadow:2px 2px 0 rgba(0,0,0,0.2); }
+  .end-sub { font-size:0.88rem; opacity:0.9; font-weight:700; margin-bottom:1.4rem; max-width:360px; }
+  .end-stats { background:rgba(255,255,255,0.2); border-radius:12px; padding:0.8rem 2rem; margin-bottom:1.5rem; font-size:0.82rem; font-weight:700; }
+
+  .confetti-cat { position:fixed; pointer-events:none; z-index:109; animation:confettiFall var(--dur,2.5s) ease-in forwards; }
+  @keyframes confettiFall { 0%{transform:translateY(-60px) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+
+  .cat-notif { position:fixed; right:16px; background:white; border:2.5px solid #e08000; border-radius:13px; padding:0.4rem 0.85rem; font-size:0.75rem; font-weight:700; z-index:50; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.1); display:flex; align-items:center; gap:7px; animation:notifIn 0.3s ease,notifOut 0.3s ease 1.6s forwards; }
+  @keyframes notifIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes notifOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(20px)} }
+</style>
+</head>
+<body>
+
+<div class="bg-layer" id="bg-layer"></div>
+<div id="float-cats"></div>
+
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-cat-left" id="header-cat-left"></div>
+    <div class="logo">CatsMap</div>
+    <div class="tagline">keyboard adaptation trainer — with cats</div>
+    <div class="header-cat-right" id="header-cat-right"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="setup">⚙️ Setup</button>
+    <button class="tab" data-tab="drill">🎯 Drill</button>
+    <button class="tab" data-tab="attack">⚔️ Cat Attack</button>
+    <button class="tab" data-tab="heatmap">🗺️ Heatmap</button>
+    <button class="tab" data-tab="guide">📖 Guide</button>
+  </div>
+
+  <!-- ══ SETUP ══ -->
+  <div class="panel active" id="panel-setup">
+
+    <div class="setup-section">
+      <div class="setup-section-title">Keyboard type</div>
+      <div class="kb-grid">
+        <div class="setup-card" data-kb="mechanical" onclick="selectKB(this)">
+          <div class="setup-card-top"><span class="setup-card-icon">⌨️</span><span class="setup-card-title">Mechanical</span></div>
+          <div class="setup-card-sub">Tactile/clicky switches. Higher key travel. Distinct actuation before bottom-out. Drills focus on lighter keypresses.</div>
+        </div>
+        <div class="setup-card" data-kb="laptop" onclick="selectKB(this)">
+          <div class="setup-card-top"><span class="setup-card-icon">💻</span><span class="setup-card-title">Laptop / Low-Profile</span></div>
+          <div class="setup-card-sub">Shallow key travel, short actuation. Scissors or butterfly switches. Drills focus on precision — less room for error.</div>
+        </div>
+        <div class="setup-card" data-kb="membrane" onclick="selectKB(this)">
+          <div class="setup-card-top"><span class="setup-card-icon">🖥️</span><span class="setup-card-title">Membrane / Chiclet</span></div>
+          <div class="setup-card-sub">Mushy feedback, register on bottom-out. Common on office keyboards. Drills help break bottom-out muscle memory.</div>
+        </div>
+        <div class="setup-card" data-kb="split" onclick="selectKB(this)">
+          <div class="setup-card-top"><span class="setup-card-icon">🔀</span><span class="setup-card-title">Split / Ergonomic</span></div>
+          <div class="setup-card-sub">Two halves, staggered or ortholinear. Centre keys remapped. Drills focus on B, Y, T, G, H and number row.</div>
+        </div>
+        <div class="setup-card" data-kb="ortho" onclick="selectKB(this)">
+          <div class="setup-card-top"><span class="setup-card-icon">▦</span><span class="setup-card-title">Ortholinear</span></div>
+          <div class="setup-card-sub">Grid layout — no stagger. Column alignment breaks years of diagonal habits. Hardest transition. Focus on pinkies and ring fingers.</div>
+        </div>
+        <div class="setup-card" data-kb="60-65" onclick="selectKB(this)">
+          <div class="setup-card-top"><span class="setup-card-icon">🔲</span><span class="setup-card-title">60%–65% Compact</span></div>
+          <div class="setup-card-sub">No numpad, F-row on layers. Arrow keys relocated. Drills focus on Fn layer muscle memory and navigation.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-section-title">Transition type</div>
+      <div class="transition-grid">
+        <div class="trans-card" data-trans="laptop-mech" onclick="selectTrans(this)"><div class="trans-from">laptop</div><div class="trans-arrow">→</div><div class="trans-to">mechanical</div></div>
+        <div class="trans-card" data-trans="mech-laptop" onclick="selectTrans(this)"><div class="trans-from">mechanical</div><div class="trans-arrow">→</div><div class="trans-to">laptop</div></div>
+        <div class="trans-card" data-trans="membrane-mech" onclick="selectTrans(this)"><div class="trans-from">membrane</div><div class="trans-arrow">→</div><div class="trans-to">mechanical</div></div>
+        <div class="trans-card" data-trans="standard-split" onclick="selectTrans(this)"><div class="trans-from">standard</div><div class="trans-arrow">→</div><div class="trans-to">split/ergo</div></div>
+        <div class="trans-card" data-trans="staggered-ortho" onclick="selectTrans(this)"><div class="trans-from">staggered</div><div class="trans-arrow">→</div><div class="trans-to">ortholinear</div></div>
+        <div class="trans-card" data-trans="size-change" onclick="selectTrans(this)"><div class="trans-from">full-size</div><div class="trans-arrow">→</div><div class="trans-to">compact 60%</div></div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-section-title">Profession / use case</div>
+      <div class="prof-grid">
+        <div class="prof-card" data-prof="developer" onclick="selectProf(this)"><div class="prof-icon">💻</div><div><div class="prof-name">Developer / DevOps</div><div class="prof-sub">brackets, symbols, CLI commands</div></div></div>
+        <div class="prof-card" data-prof="writer" onclick="selectProf(this)"><div class="prof-icon">✍️</div><div><div class="prof-name">Writer / Journalist</div><div class="prof-sub">flow state, touch typing, RSI</div></div></div>
+        <div class="prof-card" data-prof="gamer" onclick="selectProf(this)"><div class="prof-icon">🎮</div><div><div class="prof-name">Gamer</div><div class="prof-sub">WASD, APM, reaction time</div></div></div>
+        <div class="prof-card" data-prof="data" onclick="selectProf(this)"><div class="prof-icon">📊</div><div><div class="prof-name">Data Entry / Finance</div><div class="prof-sub">numpad, blind entry, shortcuts</div></div></div>
+        <div class="prof-card" data-prof="student" onclick="selectProf(this)"><div class="prof-icon">📚</div><div><div class="prof-name">Student</div><div class="prof-sub">notes, essays, research</div></div></div>
+        <div class="prof-card selected" data-prof="general" onclick="selectProf(this)"><div class="prof-icon">🙋</div><div><div class="prof-name">General</div><div class="prof-sub">balanced mix of all words</div></div></div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="startDrilling()">Start Drilling →</button>
+  </div>
+
+  <!-- ══ DRILL ══ -->
+  <div class="panel" id="panel-drill">
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-cat" id="stat-cat-acc"></div><div class="stat-val" id="acc-val">—</div><div class="stat-lbl">accuracy</div></div>
+      <div class="stat-card"><div class="stat-cat" id="stat-cat-str"></div><div class="stat-val" id="streak-val">0</div><div class="stat-lbl">streak</div></div>
+      <div class="stat-card"><div class="stat-cat" id="stat-cat-err"></div><div class="stat-val" id="errors-val">0</div><div class="stat-lbl">errors</div></div>
+      <div class="stat-card"><div class="stat-cat" id="stat-cat-drl"></div><div class="stat-val" id="drills-val">0</div><div class="stat-lbl">drills</div></div>
+    </div>
+
+    <div class="progress-wrap"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="phase-bar"><div class="phase" id="p1"></div><div class="phase active" id="p2"></div><div class="phase" id="p3"></div><div class="phase" id="p4"></div><div class="phase" id="p5"></div></div>
+
+    <!-- Phrase category selector -->
+    <div class="phrase-selector">
+      <div class="phrase-selector-title">Drill phrase category</div>
+      <div class="phrase-cats">
+        <div class="phrase-cat active" data-cat="generated" onclick="selectPhraseCat(this)">🔄 Generated</div>
+        <div class="phrase-cat" data-cat="pangram" onclick="selectPhraseCat(this)">🔤 Pangrams</div>
+        <div class="phrase-cat" data-cat="flow" onclick="selectPhraseCat(this)">🌊 Flow Phrases</div>
+        <div class="phrase-cat" data-cat="coding" onclick="selectPhraseCat(this)">💻 Coding Drills</div>
+        <div class="phrase-cat" data-cat="office" onclick="selectPhraseCat(this)">🏢 Office / Work</div>
+        <div class="phrase-cat" data-cat="punishment" onclick="selectPhraseCat(this)">😤 Punishment</div>
+      </div>
+    </div>
+
+    <div class="key-section">
+      <div class="key-section-title">Problem keys — tap your trouble spots</div>
+      <div class="key-grid" id="key-grid-drill"></div>
+    </div>
+
+    <div class="typing-card" id="typing-card" onclick="focusDrill()">
+      <div class="card-top">
+        <span class="drill-info" id="drill-info">click to focus, then start typing</span>
+        <div class="drill-tags-row" id="drill-tags"></div>
+      </div>
+      <div id="text-display"></div>
+      <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="newDrill()">New Drill</button>
+      <button class="btn btn-secondary" onclick="resetDrill()">Reset</button>
+      <button class="btn btn-secondary" onclick="switchTab('setup')">⚙️ Setup</button>
+      <div class="shortcut-hint"><kbd>Tab</kbd> new &nbsp;<kbd>Esc</kbd> reset</div>
+    </div>
+  </div>
+
+  <!-- ══ CAT ATTACK ══ -->
+  <div class="panel" id="panel-attack">
+    <div class="attack-banner">
+      <div><div class="attack-title">Cat Attack Mode</div><div class="attack-sub">Finish the passage before the cats take your keys!</div></div>
+      <div class="lives" id="attack-lives"></div>
+    </div>
+    <div class="cat-meter">
+      <div class="cat-meter-lbl">Cat invasion</div>
+      <div class="cat-slots" id="cat-slots"></div>
+      <div class="attack-timer" id="attack-timer">—</div>
+    </div>
+    <div class="key-section">
+      <div class="key-section-title">Keyboard — tap a blocked key to shoo the cat (costs 1 life)</div>
+      <div class="key-grid" id="key-grid-attack"></div>
+    </div>
+    <div class="typing-card" id="attack-card" onclick="focusAttack()">
+      <div class="card-top">
+        <span class="drill-info" id="attack-info">press Start Attack to begin</span>
+        <span class="drill-tag tag-orange" id="blocked-chip">0 keys blocked</span>
+      </div>
+      <div id="attack-display"></div>
+      <input type="text" id="attack-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="startAttack()">Start Attack!</button>
+      <button class="btn btn-danger" onclick="surrenderAttack()">Surrender</button>
+    </div>
+  </div>
+
+  <!-- ══ HEATMAP ══ -->
+  <div class="panel" id="panel-heatmap">
+    <div class="heatmap-wrap">
+      <div class="heatmap-title">Error heatmap — warmer colour = more errors on that key</div>
+      <div class="keyboard-visual" id="keyboard-visual"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-cat" id="h-cat1"></div><div class="stat-val" id="h-total">0</div><div class="stat-lbl">total errors</div></div>
+      <div class="stat-card"><div class="stat-cat" id="h-cat2"></div><div class="stat-val" id="h-worst">—</div><div class="stat-lbl">worst key</div></div>
+      <div class="stat-card"><div class="stat-cat" id="h-cat3"></div><div class="stat-val" id="h-drills">0</div><div class="stat-lbl">drills done</div></div>
+      <div class="stat-card"><div class="stat-cat" id="h-cat4"></div><div class="stat-val" id="h-acc">—</div><div class="stat-lbl">overall acc</div></div>
+    </div>
+    <div class="action-bar"><button class="btn btn-secondary" onclick="clearHeatmap()">Clear Heatmap</button></div>
+  </div>
+
+  <!-- ══ GUIDE ══ -->
+  <div class="panel" id="panel-guide">
+    <div class="prof-pills">
+      <div class="prof-pill active" data-profguide="all" onclick="filterProfGuide(this)">All</div>
+      <div class="prof-pill" data-profguide="developer" onclick="filterProfGuide(this)">💻 Developer</div>
+      <div class="prof-pill" data-profguide="writer" onclick="filterProfGuide(this)">✍️ Writer</div>
+      <div class="prof-pill" data-profguide="gamer" onclick="filterProfGuide(this)">🎮 Gamer</div>
+      <div class="prof-pill" data-profguide="data" onclick="filterProfGuide(this)">📊 Data Entry</div>
+    </div>
+
+    <div class="prof-guide active" data-profguide="developer">
+      <div class="prof-guide-header"><div class="prof-guide-icon">💻</div><div><div class="prof-guide-title">Developer / DevOps</div><div class="prof-guide-sub">layer dependency, vim bindings, brackets</div></div></div>
+      <ul class="habit-list">
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Layer dependency:</strong> Developers on 60–65% boards remap arrow keys and F-row via Fn layers. If you've switched keyboard sizes, re-learning your layer positions is the primary task.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Vim/Emacs keybindings:</strong> hjkl navigation, Ctrl combos, and custom bindings mean your modifier key positions matter enormously. Mismatch here breaks flow instantly.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Snippet triggers:</strong> Short trigger words expanded via Tab (clg → console.log) are invisible to WPM tools but critical to developer speed. Re-test your IDE snippets on the new board.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Bracket and symbol accuracy:</strong> [] {} () ; : are typed hundreds of times per session. These are your highest-value keys to drill first after a keyboard change.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Mouse minimization:</strong> Strong developers use the keyboard exclusively for everything possible. Any disruption to your Ctrl/Shift/Alt positions costs more time than slow typing.</div></li>
+      </ul>
+    </div>
+
+    <div class="prof-guide active" data-profguide="writer">
+      <div class="prof-guide-header"><div class="prof-guide-icon">✍️</div><div><div class="prof-guide-title">Writer / Journalist</div><div class="prof-guide-sub">flow state, touch typing, RSI prevention</div></div></div>
+      <ul class="habit-list">
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Flow state protection:</strong> Writers depend on unbroken rhythm. A new keyboard disrupts this more than other professions. Give yourself at least a week before writing professionally on it.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Touch typing essential:</strong> Professional writers always touch-type — eyes on screen, not keys. This is non-negotiable. If your new board tempts you to look down, discipline that out immediately.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Ergonomics matter most here:</strong> 8+ hours of typing daily makes wrist angle and elbow position critical. A split or ergonomic keyboard change is worth the longer adaptation curve for RSI prevention.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Vomit draft habit:</strong> Many writers type without looking at the screen to maintain momentum. This is broken by keyboard changes. Rebuild it deliberately — practice blind paragraphs.</div></li>
+      </ul>
+    </div>
+
+    <div class="prof-guide active" data-profguide="gamer">
+      <div class="prof-guide-header"><div class="prof-guide-icon">🎮</div><div><div class="prof-guide-title">Gamer</div><div class="prof-guide-sub">WASD home row, APM, reaction time</div></div></div>
+      <ul class="habit-list">
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>WASD not ASDF:</strong> Gamers rest on W, A, S, D — not the standard home row. Switching keyboards often means re-calibrating the distance from W to Q, Tab, and surrounding keys.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Polling rate matters:</strong> Gamers should check that a new keyboard has 1000Hz+ polling rate and full N-Key Rollover. Ghosting on a competitive board is a dealbreaker.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Keyboard tilting:</strong> Many pros tilt the keyboard at 45° for mouse room and natural wrist angle. If you've switched to a wider board, re-establishing your tilt is part of the adaptation.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Actuation point:</strong> Hall Effect boards allow adjustable actuation depth. Set it deeper initially while adapting — false triggers from accidental presses are a training issue, not a hardware one.</div></li>
+      </ul>
+    </div>
+
+    <div class="prof-guide active" data-profguide="data">
+      <div class="prof-guide-header"><div class="prof-guide-icon">📊</div><div><div class="prof-guide-title">Data Entry / Finance</div><div class="prof-guide-sub">numpad, blind entry, right-hand dominance</div></div></div>
+      <ul class="habit-list">
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Numpad home position:</strong> Professional data entry uses the 5 key (which has a physical bump) as the home. Switching to a TKL that removes the numpad is a significant workflow disruption.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Right-hand dominance:</strong> Left hand handles shortcuts (Ctrl+C, Tab, Backspace) while right hand stays on the numpad. Verify this still works on your new layout before committing.</div></li>
+        <li class="habit-item"><div class="habit-dot"></div><div class="habit-text"><strong>Blind numpad entry:</strong> A skilled data entry professional never looks at the numpad. If your new keyboard has a different numpad layout or keycap height, rebuild this muscle memory deliberately.</div></li>
+      </ul>
+    </div>
+
+    <div class="general-tips">
+      <div class="tips-title">General adaptation tips</div>
+      <div class="tips-grid">
+        <div class="tip-card"><div class="tip-cat" id="tip-cat1"></div><div class="tip-title">Slow down first</div><div class="tip-text">Aim for 50% of your normal speed. Speed returns naturally once your spatial map updates. Errors trained in don't.</div></div>
+        <div class="tip-card"><div class="tip-cat" id="tip-cat2"></div><div class="tip-title">Don't bottom out</div><div class="tip-text">Mechanical keys actuate before the floor. Train lighter keypresses — reduces fatigue and builds better habits from day one.</div></div>
+        <div class="tip-card"><div class="tip-cat" id="tip-cat3"></div><div class="tip-title">Box the old keyboard</div><div class="tip-text">72 hours of full immersion is the minimum to lock in new muscle memory. Switching back resets the learning curve instantly.</div></div>
+        <div class="tip-card"><div class="tip-cat" id="tip-cat4"></div><div class="tip-title">Remap problem keys</div><div class="tip-text">VIA and QMK let you move any key to where your fingers expect it. If you keep hitting the wrong spot, move the key — not your finger.</div></div>
+        <div class="tip-card"><div class="tip-cat" id="tip-cat5"></div><div class="tip-title">10 min beats 1 hour</div><div class="tip-text">Short focused daily drills beat marathon frustrated sessions. Cat Attack mode is great for this — pressure without consequence.</div></div>
+        <div class="tip-card"><div class="tip-cat" id="tip-cat6"></div><div class="tip-title">Pangrams first</div><div class="tip-text">Start every session with a pangram drill. Every letter of the alphabet in one pass — the most efficient way to map a new keyboard.</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .app -->
+
+<!-- Results overlay -->
+<div class="results-overlay" id="results-overlay">
+  <div class="results-card">
+    <div id="result-cat-svg" class="result-cat-svg"></div>
+    <div class="result-title">Drill done!</div>
+    <div class="result-sub" id="result-sub"></div>
+    <div class="result-grade" id="result-grade">B</div>
+    <div class="result-grid">
+      <div class="r-item"><div class="r-val" id="r-acc">0%</div><div class="r-lbl">accuracy</div></div>
+      <div class="r-item"><div class="r-val" id="r-errors">0</div><div class="r-lbl">errors</div></div>
+      <div class="r-item"><div class="r-val" id="r-streak">0</div><div class="r-lbl">best streak</div></div>
+      <div class="r-item"><div class="r-val" id="r-chars">0</div><div class="r-lbl">chars typed</div></div>
+    </div>
+    <div class="worst-row" id="worst-row"></div>
+    <div class="advice-box" id="advice-box"></div>
+    <div class="result-actions">
+      <button class="btn btn-primary" onclick="nextDrillFromResults()">Next Drill</button>
+      <button class="btn btn-secondary" onclick="closeResults()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="game-end" id="game-over">
+  <div class="end-cat" id="gameover-cat"></div>
+  <div class="end-title">The Cats Won!</div>
+  <div class="end-sub" id="gameover-sub"></div>
+  <div class="end-stats" id="gameover-stats"></div>
+  <button class="btn btn-secondary" onclick="restartAttack()" style="background:white;color:var(--ink)">Try Again</button>
+</div>
+
+<div class="game-end" id="win-screen">
+  <div class="end-cat" id="win-cat"></div>
+  <div class="end-title">You Beat the Cats!</div>
+  <div class="end-sub" id="win-sub"></div>
+  <button class="btn btn-secondary" onclick="restartAttack()" style="background:white;color:var(--ink)">Play Again</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// SVG CAT LIBRARY
+// ══════════════════════════════════════════════════════════════════════════════
+function catSVG(type, w, h) {
+  const cats = {
+    orange: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="36" rx="18" ry="16" fill="#e8741a"/><ellipse cx="30" cy="24" rx="14" ry="13" fill="#e8741a"/><polygon points="18,14 14,4 22,10" fill="#e8741a" stroke="#c05810" stroke-width="0.5"/><polygon points="42,14 46,4 38,10" fill="#e8741a" stroke="#c05810" stroke-width="0.5"/><ellipse cx="22" cy="24" rx="5" ry="6" fill="#202020"/><ellipse cx="38" cy="24" rx="5" ry="6" fill="#202020"/><ellipse cx="22" cy="23" rx="2" ry="3" fill="white"/><ellipse cx="38" cy="23" rx="2" ry="3" fill="white"/><circle cx="23" cy="22" r="1" fill="white"/><circle cx="39" cy="22" r="1" fill="white"/><ellipse cx="30" cy="29" rx="3" ry="2" fill="#d06070"/><path d="M27 31 Q30 33 33 31" fill="none" stroke="#c05810" stroke-width="1" stroke-linecap="round"/><line x1="18" y1="27" x2="8" y2="25" stroke="#c05810" stroke-width="0.8"/><line x1="18" y1="29" x2="7" y2="29" stroke="#c05810" stroke-width="0.8"/><line x1="18" y1="31" x2="8" y2="33" stroke="#c05810" stroke-width="0.8"/><line x1="42" y1="27" x2="52" y2="25" stroke="#c05810" stroke-width="0.8"/><line x1="42" y1="29" x2="53" y2="29" stroke="#c05810" stroke-width="0.8"/><line x1="42" y1="31" x2="52" y2="33" stroke="#c05810" stroke-width="0.8"/><path d="M14 40 Q12 50 16 56" fill="none" stroke="#c05810" stroke-width="2" stroke-linecap="round"/><path d="M46 40 Q48 50 44 56" fill="none" stroke="#c05810" stroke-width="2" stroke-linecap="round"/><path d="M48 38 Q56 32 58 22 Q54 28 50 30" fill="#e8741a" stroke="#c05810" stroke-width="0.8"/></svg>`,
+    tuxedo: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="36" rx="18" ry="16" fill="#505060"/><ellipse cx="30" cy="36" rx="10" ry="14" fill="#f0f0f0"/><ellipse cx="30" cy="24" rx="14" ry="13" fill="#505060"/><ellipse cx="30" cy="22" rx="8" ry="10" fill="#f0f0f0"/><polygon points="18,14 15,3 23,10" fill="#505060" stroke="#303040" stroke-width="0.5"/><polygon points="42,14 45,3 37,10" fill="#505060" stroke="#303040" stroke-width="0.5"/><polygon points="19,12 16,5 22,10" fill="#f8d0e0"/><polygon points="41,12 44,5 38,10" fill="#f8d0e0"/><ellipse cx="22" cy="24" rx="5" ry="6" fill="#c0c0d0"/><ellipse cx="38" cy="24" rx="5" ry="6" fill="#c0c0d0"/><ellipse cx="22" cy="24" rx="3" ry="4" fill="#303040"/><ellipse cx="38" cy="24" rx="3" ry="4" fill="#303040"/><circle cx="23" cy="22" r="1.2" fill="white"/><circle cx="39" cy="22" r="1.2" fill="white"/><ellipse cx="30" cy="29" rx="3" ry="2" fill="#d06070"/><path d="M27 32 Q30 30 33 32" fill="none" stroke="#303040" stroke-width="1.2" stroke-linecap="round"/><line x1="18" y1="27" x2="7" y2="25" stroke="#808090" stroke-width="0.8"/><line x1="18" y1="29" x2="6" y2="29" stroke="#808090" stroke-width="0.8"/><line x1="42" y1="27" x2="53" y2="25" stroke="#808090" stroke-width="0.8"/><line x1="42" y1="29" x2="54" y2="29" stroke="#808090" stroke-width="0.8"/><path d="M14 40 Q12 50 16 56" fill="none" stroke="#303040" stroke-width="2" stroke-linecap="round"/><path d="M46 40 Q48 50 44 56" fill="none" stroke="#303040" stroke-width="2" stroke-linecap="round"/><path d="M48 38 Q56 32 58 24 Q54 28 50 30" fill="#505060" stroke="#303040" stroke-width="0.8"/></svg>`,
+    calico: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="36" rx="18" ry="16" fill="#f5e8d0"/><ellipse cx="22" cy="38" rx="8" ry="10" fill="#e07030"/><ellipse cx="36" cy="34" rx="7" ry="8" fill="#303030"/><ellipse cx="30" cy="24" rx="14" ry="13" fill="#f5e8d0"/><ellipse cx="24" cy="20" rx="6" ry="7" fill="#e07030"/><ellipse cx="36" cy="22" rx="5" ry="6" fill="#303030"/><polygon points="18,14 15,4 23,10" fill="#e07030" stroke="#c05010" stroke-width="0.5"/><polygon points="42,14 45,4 37,10" fill="#f5e8d0" stroke="#c8b090" stroke-width="0.5"/><ellipse cx="22" cy="24" rx="5" ry="6" fill="#604040"/><ellipse cx="38" cy="24" rx="5" ry="6" fill="#604040"/><ellipse cx="22" cy="23" rx="2.5" ry="3.5" fill="#c8a060"/><ellipse cx="38" cy="23" rx="2.5" ry="3.5" fill="#c8a060"/><ellipse cx="22" cy="23" rx="1.2" ry="2.5" fill="#202020"/><ellipse cx="38" cy="23" rx="1.2" ry="2.5" fill="#202020"/><circle cx="23" cy="21" r="0.9" fill="white"/><circle cx="39" cy="21" r="0.9" fill="white"/><ellipse cx="30" cy="29" rx="3" ry="2" fill="#e07080"/><path d="M27 31 Q30 33.5 33 31" fill="none" stroke="#a06040" stroke-width="1" stroke-linecap="round"/><line x1="18" y1="27" x2="7" y2="25" stroke="#c8a080" stroke-width="0.8"/><line x1="18" y1="29" x2="6" y2="29" stroke="#c8a080" stroke-width="0.8"/><line x1="42" y1="27" x2="53" y2="25" stroke="#c8a080" stroke-width="0.8"/><line x1="42" y1="29" x2="54" y2="29" stroke="#c8a080" stroke-width="0.8"/><path d="M13 40 Q11 50 15 56" fill="none" stroke="#a06040" stroke-width="2" stroke-linecap="round"/><path d="M47 40 Q49 50 45 56" fill="none" stroke="#a06040" stroke-width="2" stroke-linecap="round"/><path d="M48 38 Q56 34 57 24 Q53 28 49 30" fill="#f5e8d0" stroke="#c8a080" stroke-width="0.8"/></svg>`,
+    black: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="36" rx="18" ry="16" fill="#1a1a28"/><ellipse cx="30" cy="24" rx="14" ry="13" fill="#1a1a28"/><polygon points="18,14 14,3 23,10" fill="#1a1a28" stroke="#2a2a3a" stroke-width="0.5"/><polygon points="42,14 46,3 37,10" fill="#1a1a28" stroke="#2a2a3a" stroke-width="0.5"/><polygon points="19,12 16,5 22,10" fill="#e090a0"/><polygon points="41,12 44,5 38,10" fill="#e090a0"/><ellipse cx="22" cy="24" rx="5.5" ry="6.5" fill="#d0a020"/><ellipse cx="38" cy="24" rx="5.5" ry="6.5" fill="#d0a020"/><ellipse cx="22" cy="24" rx="2" ry="4" fill="#101018"/><ellipse cx="38" cy="24" rx="2" ry="4" fill="#101018"/><circle cx="23.5" cy="22" r="1.2" fill="white"/><circle cx="39.5" cy="22" r="1.2" fill="white"/><ellipse cx="30" cy="29" rx="3" ry="2" fill="#e090a0"/><path d="M27 31.5 Q30 33 33 31.5" fill="none" stroke="#3a3a4a" stroke-width="1.2" stroke-linecap="round"/><line x1="18" y1="27" x2="6" y2="25" stroke="#3a3a4a" stroke-width="0.9"/><line x1="18" y1="29" x2="5" y2="29" stroke="#3a3a4a" stroke-width="0.9"/><line x1="42" y1="27" x2="54" y2="25" stroke="#3a3a4a" stroke-width="0.9"/><line x1="42" y1="29" x2="55" y2="29" stroke="#3a3a4a" stroke-width="0.9"/><path d="M13 40 Q11 50 15 56" fill="none" stroke="#2a2a3a" stroke-width="2.5" stroke-linecap="round"/><path d="M47 40 Q49 50 45 56" fill="none" stroke="#2a2a3a" stroke-width="2.5" stroke-linecap="round"/><path d="M48 38 Q58 32 59 20 Q54 28 50 30" fill="#1a1a28" stroke="#2a2a3a" stroke-width="0.8"/></svg>`,
+    ginger: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="36" rx="20" ry="17" fill="#e8b060"/><ellipse cx="30" cy="24" rx="16" ry="14" fill="#e8b060"/><ellipse cx="30" cy="26" rx="9" ry="11" fill="#f8d898"/><polygon points="17,13 13,2 22,9" fill="#e8b060" stroke="#c08840" stroke-width="0.5"/><polygon points="43,13 47,2 38,9" fill="#e8b060" stroke="#c08840" stroke-width="0.5"/><polygon points="18,11 15,4 22,9" fill="#f8c0b0"/><polygon points="42,11 45,4 38,9" fill="#f8c0b0"/><ellipse cx="22" cy="23" rx="5.5" ry="6" fill="#80b040"/><ellipse cx="38" cy="23" rx="5.5" ry="6" fill="#80b040"/><ellipse cx="22" cy="23" rx="2.2" ry="3.5" fill="#1a2010"/><ellipse cx="38" cy="23" rx="2.2" ry="3.5" fill="#1a2010"/><circle cx="23" cy="21" r="1.2" fill="white"/><circle cx="39" cy="21" r="1.2" fill="white"/><ellipse cx="30" cy="28" rx="3.5" ry="2.5" fill="#e08090"/><path d="M26 30.5 Q30 33 34 30.5" fill="none" stroke="#c08840" stroke-width="1" stroke-linecap="round"/><line x1="18" y1="26" x2="6" y2="24" stroke="#c08840" stroke-width="0.9"/><line x1="18" y1="28" x2="5" y2="28" stroke="#c08840" stroke-width="0.9"/><line x1="18" y1="30" x2="6" y2="32" stroke="#c08840" stroke-width="0.9"/><line x1="42" y1="26" x2="54" y2="24" stroke="#c08840" stroke-width="0.9"/><line x1="42" y1="28" x2="55" y2="28" stroke="#c08840" stroke-width="0.9"/><line x1="42" y1="30" x2="54" y2="32" stroke="#c08840" stroke-width="0.9"/><path d="M12 40 Q10 51 14 57" fill="none" stroke="#c08840" stroke-width="2.2" stroke-linecap="round"/><path d="M48 40 Q50 51 46 57" fill="none" stroke="#c08840" stroke-width="2.2" stroke-linecap="round"/><path d="M50 38 Q58 32 59 22 Q55 28 51 30" fill="#e8b060" stroke="#c08840" stroke-width="0.8"/></svg>`,
+    grey: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="36" rx="18" ry="16" fill="#8898b0"/><ellipse cx="30" cy="24" rx="14" ry="13" fill="#8898b0"/><ellipse cx="30" cy="25" rx="8" ry="10" fill="#c8d4e0"/><polygon points="18,14 15,3 23,10" fill="#8898b0" stroke="#6878a0" stroke-width="0.5"/><polygon points="42,14 45,3 37,10" fill="#8898b0" stroke="#6878a0" stroke-width="0.5"/><polygon points="19,12 16,5 22,10" fill="#f0c0d0"/><polygon points="41,12 44,5 38,10" fill="#f0c0d0"/><ellipse cx="22" cy="24" rx="5" ry="6" fill="#6090d0"/><ellipse cx="38" cy="24" rx="5" ry="6" fill="#6090d0"/><ellipse cx="22" cy="24" rx="2.5" ry="4" fill="#182840"/><ellipse cx="38" cy="24" rx="2.5" ry="4" fill="#182840"/><circle cx="23" cy="22" r="1" fill="white"/><circle cx="39" cy="22" r="1" fill="white"/><ellipse cx="30" cy="29" rx="3" ry="2" fill="#d080a0"/><path d="M27 31 Q30 32.5 33 31" fill="none" stroke="#6878a0" stroke-width="1" stroke-linecap="round"/><line x1="18" y1="27" x2="7" y2="25" stroke="#a0b0c0" stroke-width="0.8"/><line x1="18" y1="29" x2="6" y2="29" stroke="#a0b0c0" stroke-width="0.8"/><line x1="42" y1="27" x2="53" y2="25" stroke="#a0b0c0" stroke-width="0.8"/><line x1="42" y1="29" x2="54" y2="29" stroke="#a0b0c0" stroke-width="0.8"/><path d="M14 40 Q12 50 16 56" fill="none" stroke="#6878a0" stroke-width="2" stroke-linecap="round"/><path d="M46 40 Q48 50 44 56" fill="none" stroke="#6878a0" stroke-width="2" stroke-linecap="round"/><path d="M48 38 Q56 32 57 22 Q53 28 49 30" fill="#8898b0" stroke="#6878a0" stroke-width="0.8"/></svg>`,
+  };
+  return cats[type] || cats.orange;
+}
+
+const CAT_TYPES = ['orange','tuxedo','calico','black','ginger','grey'];
+const CAT_NAMES = { orange:'Marmalade', tuxedo:'Baron', calico:'Patches', black:'Midnight', ginger:'Biscuit', grey:'Slate' };
+function catChip(type) { return catSVG(type, 18, 18); }
+function rndCat() { return CAT_TYPES[Math.floor(Math.random()*CAT_TYPES.length)]; }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BACKGROUND
+// ══════════════════════════════════════════════════════════════════════════════
+function initBackground() {
+  const layer = document.getElementById('bg-layer');
+  for (let i=0; i<12; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bg-cat';
+    const size = 44+Math.random()*50;
+    wrap.innerHTML = catSVG(CAT_TYPES[i%CAT_TYPES.length], size, size);
+    wrap.style.left = Math.random()*95+'vw';
+    wrap.style.animationDuration = (14+Math.random()*22)+'s';
+    wrap.style.animationDelay = (-Math.random()*28)+'s';
+    layer.appendChild(wrap);
+  }
+  // Wandering edge cats
+  const positions = [
+    {s:'top:12%;left:1%',d:'14s',dl:'0s'},{s:'top:22%;right:1%',d:'18s',dl:'-5s'},
+    {s:'top:50%;left:0.5%',d:'20s',dl:'-8s'},{s:'top:68%;right:0.5%',d:'16s',dl:'-3s'},
+    {s:'top:82%;left:2%',d:'22s',dl:'-12s'},
+  ];
+  const styleEl = document.createElement('style');
+  let kf = '';
+  positions.forEach((pos, i) => {
+    const dx = Math.random()*40-20, dy = Math.random()*60-30;
+    kf += `@keyframes wander${i}{0%{transform:translate(0,0) rotate(-3deg)}25%{transform:translate(${dx}px,${dy}px) rotate(5deg)}50%{transform:translate(${-dx/2}px,${dy*1.5}px) rotate(-4deg)}75%{transform:translate(${dx*1.5}px,${dy/2}px) rotate(6deg)}100%{transform:translate(0,0) rotate(-3deg)}}`;
+    const wrap = document.createElement('div');
+    wrap.className = 'wander-cat';
+    wrap.style.cssText = pos.s+';animation:wander'+i+' '+pos.d+' ease-in-out infinite '+pos.dl;
+    wrap.innerHTML = catSVG(CAT_TYPES[i%CAT_TYPES.length], 50, 50);
+    document.getElementById('float-cats').appendChild(wrap);
+  });
+  document.head.appendChild(styleEl);
+  styleEl.textContent = kf;
+
+  // Place cats in header and stat cards
+  document.getElementById('header-cat-left').innerHTML = catSVG('orange', 62, 62);
+  document.getElementById('header-cat-right').innerHTML = catSVG('tuxedo', 62, 62);
+  document.getElementById('stat-cat-acc').innerHTML = catSVG('ginger', 30, 30);
+  document.getElementById('stat-cat-str').innerHTML = catSVG('orange', 30, 30);
+  document.getElementById('stat-cat-err').innerHTML = catSVG('black', 30, 30);
+  document.getElementById('stat-cat-drl').innerHTML = catSVG('grey', 30, 30);
+  document.getElementById('h-cat1').innerHTML = catSVG('black', 26, 26);
+  document.getElementById('h-cat2').innerHTML = catSVG('tuxedo', 26, 26);
+  document.getElementById('h-cat3').innerHTML = catSVG('grey', 26, 26);
+  document.getElementById('h-cat4').innerHTML = catSVG('ginger', 26, 26);
+  ['orange','tuxedo','calico','black','ginger','grey'].forEach((t,i) => {
+    const el = document.getElementById('tip-cat'+(i+1));
+    if (el) el.innerHTML = catSVG(t, 36, 36);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════════════════════════
+const KB_ROWS = [
+  ['`','1','2','3','4','5','6','7','8','9','0','-','=','←'],
+  ['Tab','q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  ['Caps','a','s','d','f','g','h','j','k','l',';',"'",'↵'],
+  ['⇧','z','x','c','v','b','n','m',',','.','/','⇧'],
+  ['Ctrl','Alt','⎵','Alt','Ctrl']
+];
+const KEY_WIDTHS = {'←':'wide','Tab':'wide','\\':'wide','Caps':'wide','↵':'wider','⇧':'wider','⎵':'space','Ctrl':'wide','Alt':'wide'};
+const PROBLEM_KEYS = ['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m',',','.','/',';',"'",'-','=','[',']'];
+
+// Word pools per key
+const WORDS = {
+  q:['quite','queen','quick','quote','query','quiet','quiz','quill','quest'],
+  w:['walk','wave','when','word','work','wrap','write','wrong','wrist','watch'],
+  e:['each','edge','enter','every','event','equal','embed','eight','empty'],
+  r:['reach','read','ready','real','rest','right','river','root','run','refactor'],
+  t:['take','talk','tell','test','text','think','track','trust','turn','type'],
+  y:['yard','year','yet','yield','your','yellow','yell','young'],
+  u:['under','until','upper','urban','user','usual','unit','ultra','unique'],
+  i:['idea','into','item','its','index','inner','input','image','interface'],
+  o:['object','often','once','only','open','order','other','output','offset'],
+  p:['page','path','pick','place','play','point','power','push','put','port'],
+  a:['about','after','again','also','area','around','away','across','adapt'],
+  s:['same','save','send','show','since','size','skill','small','some','set'],
+  d:['dark','data','dead','deep','define','detail','down','draw','debug','driver'],
+  f:['fact','fail','fast','feel','find','first','focus','follow','from','flash'],
+  g:['game','give','good','grab','great','green','grid','grow','guard','get'],
+  h:['half','hard','have','help','here','high','hold','home','hour','handle'],
+  j:['join','just','judge','jump','job','joy','journal'],
+  k:['keep','key','kind','know','kernel','keyboard','kit'],
+  l:['large','last','late','learn','left','less','level','limit','link','load'],
+  z:['zero','zone','zoom','zip','zap','zenith'],
+  x:['exact','next','text','extra','example','exit','extend','flux'],
+  c:['call','case','code','come','core','cost','count','cover','create','char'],
+  v:['value','very','view','void','valid','vector','verify','version'],
+  b:['back','base','basic','build','bus','buffer','byte','block','board','bit'],
+  n:['name','need','next','node','null','number','network','new','note','near'],
+  m:['main','make','map','mark','match','mode','more','move','must','mount'],
+  ',':['input, output','read, write','send, receive','add, remove','up, down'],
+  '.':['main.c','config.h','setup.cpp','read.txt','kernel.c'],
+  '/':['root/path','src/main','lib/core','usr/bin','dev/null'],
+  ';':['int i;','return 0;','end; start;','break; next;'],
+};
+
+// Profession word pools
+const PROF_WORDS = {
+  developer: ['function','variable','return','const','struct','pointer','malloc','kernel','driver','module','socket','thread','mutex','signal','debug','compile','deploy','branch','commit','merge','refactor','typedef','callback','interrupt','register','bitwise','protocol','interface','buffer','overflow','stack','heap','runtime'],
+  writer: ['paragraph','sentence','metaphor','narrative','character','dialogue','setting','conflict','resolution','tension','theme','voice','draft','revision','manuscript','deadline','article','column','feature','editorial'],
+  gamer: ['respawn','cooldown','loadout','stamina','inventory','crafting','checkpoint','framerate','latency','hitbox','strafe','crouch','sprint','reload','ultimate','passive','ability'],
+  data: ['spreadsheet','formula','dataset','column','pivot','aggregate','average','median','deviation','variance','regression','forecast','budget','revenue','margin','quarterly','fiscal','audit'],
+  student: ['assignment','lecture','tutorial','deadline','revision','concept','theorem','equation','experiment','hypothesis','conclusion','reference','citation','abstract','summary'],
+  general: ['the','be','to','of','and','in','that','have','it','for','not','with','as','you','do','at','this','but','his','from','they','we','say','one','all','would','there','their','what','so','up','out']
+};
+
+// ── PHRASE BANKS ──────────────────────────────────────────────────────────────
+const PHRASE_BANKS = {
+  pangram: [
+    "The quick brown fox jumps over the lazy dog.",
+    "Sphinx of black quartz, judge my vow.",
+    "Pack my box with five dozen liquor jugs.",
+    "How razorback-jumping frogs can level six piqued gymnasts.",
+    "Cozy lummox gives smart squid who asks for job pen.",
+    "Five quacking zephyrs jolt my wax bed.",
+    "The five boxing wizards jump quickly."
+  ],
+  flow: [
+    "The first draft is just you telling yourself the story.",
+    "There is no greater agony than bearing an untold story inside you.",
+    "It was the best of times, it was the worst of times.",
+    "To be or not to be, that is the question.",
+    "He decided to move into the new house with his father.",
+    "Not all those who wander are lost.",
+    "In the beginning was the word, and the word was with you.",
+    "You only live once, but if you do it right, once is enough.",
+    "The world is a book, and those who do not travel read only one page."
+  ],
+  coding: [
+    "sudo apt-get update && sudo apt-get upgrade",
+    "git commit -m \"Fixed the logic in the Python script\"",
+    "print(\"Hello World!\") # Testing regex patterns",
+    "int main() { return 0; } // entry point",
+    "for (int i = 0; i < n; i++) { array[i] = 0; }",
+    "const char *ptr = malloc(sizeof(char) * 256);",
+    "git push origin main --force-with-lease",
+    "docker build -t myapp:latest . && docker run -p 8080:8080 myapp",
+    "ssh -i ~/.ssh/id_rsa user@192.168.1.100",
+    "grep -r \"TODO\" src/ | wc -l"
+  ],
+  office: [
+    "Please find the attached document for your review.",
+    "Let's touch base on Monday regarding the orientation schedule.",
+    "The September 2026 deadline is approaching quickly.",
+    "I will circle back with you after the stand-up tomorrow.",
+    "Please review the proposal and provide your feedback by Friday.",
+    "Kindly confirm receipt of this email at your earliest convenience.",
+    "The quarterly report has been updated with the latest figures.",
+    "Could you please forward this to the relevant stakeholders?"
+  ],
+  punishment: [
+    "Silly rabbits foot across the moonlit wood full of little bells.",
+    "Stewardesses dressed in red tasted desserts near the streetcar.",
+    "Phyllis, look up my hilly poly mono lily on that hillside.",
+    "She sees seas where he sees skies and we see cheese.",
+    "How much wood would a woodchuck chuck if it could chuck wood.",
+    "Betty Botter bought some butter but the butter was bitter.",
+    "Red lorry yellow lorry red lorry yellow lorry fast.",
+    "Peter Piper picked a peck of pickled peppers proudly."
+  ]
+};
+
+// Transition-specific advice
+const TRANS_ADVICE = {
+  'laptop-mech': 'Your main challenge is key travel — mechanical keys are much taller. Your fingers are lifting too high between rows. Focus on lighter, shallower keypresses. You are probably bottoming out every key.',
+  'mech-laptop': 'Mechanical to laptop is surprisingly hard. The keys are much shallower and closer together. Focus on precision over speed — laptop keys punish misses more than mechanical.',
+  'membrane-mech': 'Membrane boards have no tactile feedback — you have been relying on bottoming out to know a key registered. On mechanical, the key registers before you bottom. Train lighter keypresses.',
+  'standard-split': 'Split keyboards require re-learning key positions for keys near the centre. B, Y, T, G, H and the number row are your highest-risk keys. Expect two to three weeks before this feels natural.',
+  'staggered-ortho': 'Ortholinear removes the stagger your fingers have been trained on for years. This is one of the hardest transitions. Focus specifically on columns — your pinkies and ring fingers will struggle most.',
+  'size-change': 'Going compact means keys that were dedicated are now on layers. Your Fn key position and layer combos are the critical thing to drill. Arrow keys, function row, and Delete are the usual casualties.'
+};
+
+// Attack passages
+const ATTACK_PASSAGES = [
+  "type fast before the cats take over your keyboard and block all the keys you need to finish this sentence here",
+  "the quick brown fox jumps over the lazy dog while a cat watches planning its next keyboard invasion carefully",
+  "every key you press is one step ahead of the cats approaching one by one ready to sit down on your board",
+  "speed and accuracy are both your weapons against the invasion type each word before another cat arrives now",
+  "finish this passage and claim victory over the keyboard cats who thought they could stop your typing today"
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════════
+let state = {
+  kb: null, transition: null, profession: 'general',
+  phraseCategory: 'generated',
+  selectedKeys: [],
+  text: '', typed: '',
+  errors: 0, keystrokes: 0,
+  streak: 0, bestStreak: 0,
+  drillsDone: 0, errorMap: {},
+  finished: false
+};
+
+let attack = {
+  text:'', typed:'', errors:0, keystrokes:0,
+  blockedKeys:{}, blockedCatTypes:{},
+  lives:3, catCount:0, maxCats:10,
+  catTimer:null, timeTimer:null,
+  gameActive:false, passageIdx:0, timeElapsed:0
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SETUP
+// ══════════════════════════════════════════════════════════════════════════════
+function selectKB(el) {
+  document.querySelectorAll('.setup-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.kb = el.dataset.kb;
+}
+
+function selectTrans(el) {
+  document.querySelectorAll('.trans-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.transition = el.dataset.trans;
+}
+
+function selectProf(el) {
+  document.querySelectorAll('.prof-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.profession = el.dataset.prof;
+}
+
+function startDrilling() {
+  switchTab('drill');
+  buildKeyGrid('key-grid-drill', state.selectedKeys, {}, toggleDrillKey);
+  newDrill();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+name));
+  if (name==='heatmap') renderHeatmap();
+  if (name==='attack') initAttackUI();
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', ()=>switchTab(tab.dataset.tab));
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHRASE CATEGORY
+// ══════════════════════════════════════════════════════════════════════════════
+function selectPhraseCat(el) {
+  document.querySelectorAll('.phrase-cat').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  state.phraseCategory = el.dataset.cat;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// KEY GRID
+// ══════════════════════════════════════════════════════════════════════════════
+function buildKeyGrid(gridId, selectedArr, blockedObj, onSelect) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  PROBLEM_KEYS.forEach(key => {
+    const chip = document.createElement('div');
+    chip.className = 'key-chip';
+    const lk = key.toLowerCase();
+    if (selectedArr && selectedArr.includes(key)) chip.classList.add('selected');
+    if (blockedObj && blockedObj[lk]) {
+      chip.classList.add('blocked');
+      chip.innerHTML = `<span style="display:inline-flex;align-items:center;gap:2px">${catChip(attack.blockedCatTypes[lk]||'orange')}<span>${key}</span></span>`;
+    } else {
+      chip.textContent = key;
+    }
+    chip.addEventListener('click', ()=>onSelect(key));
+    grid.appendChild(chip);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEXT GENERATION
+// ══════════════════════════════════════════════════════════════════════════════
+function generateText() {
+  if (state.phraseCategory !== 'generated') {
+    const bank = PHRASE_BANKS[state.phraseCategory];
+    if (bank) return bank[Math.floor(Math.random()*bank.length)];
+  }
+  const profWords = PROF_WORDS[state.profession] || PROF_WORDS.general;
+  const focusKeys = state.selectedKeys;
+  const words = [];
+  for (let i=0; i<24; i++) {
+    if (focusKeys.length>0 && i%2===0) {
+      const fk = focusKeys[i%focusKeys.length].toLowerCase();
+      const pool = WORDS[fk] || profWords;
+      words.push(pool[Math.floor(Math.random()*pool.length)]);
+    } else {
+      words.push(profWords[Math.floor(Math.random()*profWords.length)]);
+    }
+  }
+  return words.join(' ');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RENDER TEXT
+// ══════════════════════════════════════════════════════════════════════════════
+function renderTextTo(displayId, text, typed, focusKeys, blockedKeys) {
+  const display = document.getElementById(displayId);
+  const fkSet = new Set((focusKeys||[]).map(k=>k.toLowerCase()));
+  const bkSet = new Set(Object.keys(blockedKeys||{}));
+  let html = '';
+  for (let i=0; i<text.length; i++) {
+    const ch = text[i]===' '?'&nbsp;':text[i];
+    const isFocus = fkSet.has(text[i].toLowerCase());
+    const isBlocked = bkSet.has(text[i].toLowerCase()) && i>=typed.length;
+    let cls='char';
+    if (isFocus) cls+=' focus-key';
+    if (i===typed.length) cls+=' cursor';
+    else if (i<typed.length) cls+=typed[i]===text[i]?' correct':' incorrect';
+    html += `<span class="${cls}">${isBlocked?'▪':ch}</span>`;
+  }
+  display.innerHTML = html;
+  const cursor = display.querySelector('.cursor');
+  if (cursor) cursor.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DRILL
+// ══════════════════════════════════════════════════════════════════════════════
+function newDrill() {
+  state.text = generateText();
+  state.typed=''; state.errors=0; state.keystrokes=0;
+  state.streak=0; state.bestStreak=0; state.finished=false;
+  document.getElementById('hidden-input').value='';
+  renderTextTo('text-display', state.text, '', state.selectedKeys, {});
+  updateDrillStats(); updateProgress(0); updateDrillTags(); focusDrill();
+}
+
+function focusDrill() { document.getElementById('hidden-input').focus(); }
+
+document.getElementById('hidden-input').addEventListener('input', () => {
+  if (state.finished) return;
+  const value = document.getElementById('hidden-input').value;
+  if (value.length < state.typed.length) {
+    state.typed=value;
+    renderTextTo('text-display', state.text, state.typed, state.selectedKeys, {});
+    updateProgress(state.typed.length/state.text.length*100);
+    return;
+  }
+  const newChar = value[value.length-1];
+  const expected = state.text[state.typed.length];
+  state.keystrokes++;
+  if (newChar!==expected) {
+    state.errors++; state.streak=0;
+    const ek = expected===' '?'space':expected.toLowerCase();
+    state.errorMap[ek]=(state.errorMap[ek]||0)+1;
+    document.getElementById('typing-card').classList.add('shake');
+    setTimeout(()=>document.getElementById('typing-card').classList.remove('shake'),250);
+  } else {
+    state.streak++;
+    if (state.streak>state.bestStreak) state.bestStreak=state.streak;
+  }
+  state.typed=value;
+  if (state.typed.length>=state.text.length){finishDrill();return;}
+  renderTextTo('text-display', state.text, state.typed, state.selectedKeys, {});
+  updateProgress(state.typed.length/state.text.length*100);
+  updateDrillStats();
+});
+
+function finishDrill() {
+  state.finished=true; state.drillsDone++;
+  document.getElementById('drills-val').textContent=state.drillsDone;
+  updatePhaseBar();
+  showDrillResults();
+  buildKeyGrid('key-grid-drill', state.selectedKeys, {}, toggleDrillKey);
+}
+
+function updateDrillStats() {
+  const acc = state.keystrokes===0?'—':Math.round(((state.keystrokes-state.errors)/state.keystrokes)*100)+'%';
+  const el = document.getElementById('acc-val');
+  el.textContent=acc;
+  const n=parseInt(acc);
+  el.className='stat-val'+(isNaN(n)?'':n>=95?' good':n>=80?' warn':' bad');
+  document.getElementById('streak-val').textContent=state.streak;
+  document.getElementById('errors-val').textContent=state.errors;
+}
+
+function updateProgress(pct) {
+  document.getElementById('progress-fill').style.width=Math.min(100,pct)+'%';
+}
+
+function updatePhaseBar() {
+  for (let i=1;i<=5;i++) {
+    const p=document.getElementById('p'+i);
+    const pos=state.drillsDone%5;
+    p.className='phase'+(i<=pos?' done':i===pos+1?' active':'');
+  }
+}
+
+function updateDrillTags() {
+  const tags=document.getElementById('drill-tags');
+  tags.innerHTML='';
+  if (state.kb) tags.innerHTML+=`<span class="drill-tag tag-orange">${state.kb}</span>`;
+  if (state.profession && state.profession!=='general') tags.innerHTML+=`<span class="drill-tag tag-blue">${state.profession}</span>`;
+  if (state.phraseCategory!=='generated') tags.innerHTML+=`<span class="drill-tag tag-purple">${state.phraseCategory}</span>`;
+  if (state.selectedKeys.length>0) tags.innerHTML+=`<span class="drill-tag tag-green">focus: ${state.selectedKeys.slice(0,3).join(' ')}${state.selectedKeys.length>3?'+':''}</span>`;
+  document.getElementById('drill-info').textContent = state.selectedKeys.length>0?'highlighted = your focus keys':'type carefully — accuracy first';
+}
+
+function toggleDrillKey(key) {
+  const idx=state.selectedKeys.indexOf(key);
+  if (idx>=0) state.selectedKeys.splice(idx,1); else state.selectedKeys.push(key);
+  buildKeyGrid('key-grid-drill', state.selectedKeys, {}, toggleDrillKey);
+  updateDrillTags();
+}
+
+function resetDrill() {
+  state.typed=''; state.errors=0; state.keystrokes=0; state.streak=0;
+  document.getElementById('hidden-input').value='';
+  renderTextTo('text-display', state.text, '', state.selectedKeys, {});
+  updateDrillStats(); updateProgress(0); focusDrill();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RESULTS
+// ══════════════════════════════════════════════════════════════════════════════
+function showDrillResults() {
+  const acc = state.keystrokes===0?0:Math.round(((state.keystrokes-state.errors)/state.keystrokes)*100);
+  const grade = acc>=98?'S':acc>=95?'A':acc>=88?'B':acc>=75?'C':'D';
+  const catForGrade = {S:'ginger',A:'orange',B:'calico',C:'grey',D:'tuxedo'};
+  const ct = catForGrade[grade];
+
+  document.getElementById('result-cat-svg').innerHTML = catSVG(ct, 76, 76);
+  document.getElementById('result-grade').textContent=grade;
+  document.getElementById('result-grade').className='result-grade grade-'+grade.toLowerCase();
+  document.getElementById('r-acc').textContent=acc+'%';
+  document.getElementById('r-errors').textContent=state.errors;
+  document.getElementById('r-streak').textContent=state.bestStreak;
+  document.getElementById('r-chars').textContent=state.typed.length;
+
+  let ctx = state.phraseCategory!=='generated'?state.phraseCategory+' drill':state.profession+' drill';
+  if (state.kb) ctx+=' · '+state.kb;
+  if (state.transition) ctx+=' · '+state.transition.replace('-',' → ');
+  document.getElementById('result-sub').textContent=ctx;
+
+  const sorted=Object.entries(state.errorMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const wr=document.getElementById('worst-row');
+  wr.innerHTML=sorted.length>0
+    ?sorted.map(([k,v])=>`<span class="worst-badge">${k} ×${v}</span>`).join('')
+    :'<span style="font-size:0.75rem;color:var(--ink3)">No repeated errors — great run!</span>';
+
+  let advice='';
+  if (state.transition && TRANS_ADVICE[state.transition]) {
+    advice='<strong>Transition note:</strong> '+TRANS_ADVICE[state.transition];
+  } else if (acc>=95) {
+    advice=`<strong>${CAT_NAMES[ct]} approves.</strong> Muscle memory is locking in. Keep drilling daily.`;
+  } else if (acc>=80) {
+    advice=`<strong>${CAT_NAMES[ct]} is watching.</strong> Slow down another 10% and focus on those error keys above.`;
+  } else {
+    advice=`<strong>${CAT_NAMES[ct]} has seen worse.</strong> Early adaptation — totally normal. Aim for 50% of your normal speed.`;
+  }
+  document.getElementById('advice-box').innerHTML=advice;
+  document.getElementById('results-overlay').classList.add('visible');
+}
+
+function nextDrillFromResults(){closeResults();newDrill();}
+function closeResults(){document.getElementById('results-overlay').classList.remove('visible');}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CAT ATTACK
+// ══════════════════════════════════════════════════════════════════════════════
+function initAttackUI() {
+  renderLives(3); renderCatSlots(0);
+  buildKeyGrid('key-grid-attack',[],{},shooCat);
+  document.getElementById('attack-timer').textContent='—';
+}
+
+function renderLives(n) {
+  const el=document.getElementById('attack-lives');
+  el.innerHTML='';
+  for(let i=0;i<3;i++){const s=document.createElement('span');s.style.fontSize='1.2rem';s.textContent=i<n?'❤️':'🖤';el.appendChild(s);}
+}
+
+function renderCatSlots(n) {
+  const slots=document.getElementById('cat-slots');
+  slots.innerHTML='';
+  for(let i=0;i<attack.maxCats;i++){
+    const slot=document.createElement('div');
+    slot.className='cat-slot'+(i<n?' occupied':'');
+    if(i<n) slot.innerHTML=catSVG(CAT_TYPES[i%CAT_TYPES.length],26,26);
+    slots.appendChild(slot);
+  }
+}
+
+function startAttack() {
+  attack.text=ATTACK_PASSAGES[attack.passageIdx%ATTACK_PASSAGES.length];
+  attack.passageIdx++;
+  attack.typed='';attack.errors=0;attack.keystrokes=0;
+  attack.blockedKeys={};attack.blockedCatTypes={};
+  attack.catCount=0;attack.lives=3;
+  attack.gameActive=true;attack.timeElapsed=0;
+  document.getElementById('attack-input').value='';
+  renderTextTo('attack-display',attack.text,'','',{});
+  renderLives(3);renderCatSlots(0);updateBlockedChip();
+  buildKeyGrid('key-grid-attack',[],{},shooCat);
+  document.getElementById('attack-info').textContent='type fast — cats are coming!';
+  clearInterval(attack.catTimer);
+  attack.catTimer=setInterval(sendCat,4000);
+  clearInterval(attack.timeTimer);
+  attack.timeTimer=setInterval(()=>{
+    attack.timeElapsed++;
+    const el=document.getElementById('attack-timer');
+    el.textContent=attack.timeElapsed+'s';
+    el.className='attack-timer'+(Object.keys(attack.blockedKeys).length>=7?' warn':'');
+  },1000);
+  focusAttack();
+}
+
+function sendCat() {
+  if(!attack.gameActive) return;
+  const available=PROBLEM_KEYS.filter(k=>!attack.blockedKeys[k.toLowerCase()]);
+  if(available.length===0){endAttack(false);return;}
+  const remaining=attack.text.slice(attack.typed.length).toLowerCase();
+  const inText=available.filter(k=>remaining.includes(k.toLowerCase()));
+  const targetKey=inText.length>0?inText[Math.floor(Math.random()*Math.min(inText.length,5))]:available[Math.floor(Math.random()*available.length)];
+  const catType=CAT_TYPES[Math.floor(Math.random()*CAT_TYPES.length)];
+  const lk=targetKey.toLowerCase();
+  attack.blockedKeys[lk]=catType;
+  attack.blockedCatTypes[lk]=catType;
+  attack.catCount=Math.min(attack.catCount+1,attack.maxCats);
+  showCatNotif(targetKey,catType);
+  buildKeyGrid('key-grid-attack',[],attack.blockedKeys,shooCat);
+  renderTextTo('attack-display',attack.text,attack.typed,[],attack.blockedKeys);
+  renderCatSlots(attack.catCount);
+  updateBlockedChip();
+  if(Object.keys(attack.blockedKeys).length>=10) setTimeout(()=>endAttack(false),500);
+}
+
+function showCatNotif(key,catType) {
+  const notif=document.createElement('div');
+  notif.className='cat-notif';
+  notif.style.top=(80+Math.random()*180)+'px';
+  notif.innerHTML=catSVG(catType,26,26)+`<span><strong>${CAT_NAMES[catType]}</strong> sat on <kbd style="background:var(--cream2);border:1.5px solid var(--border);border-radius:4px;padding:1px 4px;font-size:0.72rem">${key}</kbd></span>`;
+  document.body.appendChild(notif);
+  setTimeout(()=>notif.remove(),2100);
+}
+
+function shooCat(key) {
+  const lk=key.toLowerCase();
+  if(!attack.blockedKeys[lk]){toggleDrillKey(key);return;}
+  if(!attack.gameActive) return;
+  attack.lives=Math.max(0,attack.lives-1);
+  const catType=attack.blockedCatTypes[lk];
+  delete attack.blockedKeys[lk]; delete attack.blockedCatTypes[lk];
+  attack.catCount=Math.max(0,attack.catCount-1);
+  renderLives(attack.lives);renderCatSlots(attack.catCount);
+  buildKeyGrid('key-grid-attack',[],attack.blockedKeys,shooCat);
+  renderTextTo('attack-display',attack.text,attack.typed,[],attack.blockedKeys);
+  updateBlockedChip();
+  const notif=document.createElement('div');
+  notif.className='cat-notif';
+  notif.style.top=(60+Math.random()*120)+'px';
+  notif.style.borderColor='var(--green)';
+  notif.innerHTML=catSVG(catType,22,22)+`<span>Shooed <strong>${CAT_NAMES[catType]||key}</strong>! (-1 ❤️)</span>`;
+  document.body.appendChild(notif);
+  setTimeout(()=>notif.remove(),1500);
+  if(attack.lives<=0) endAttack(false);
+}
+
+function updateBlockedChip() {
+  const n=Object.keys(attack.blockedKeys).length;
+  const chip=document.getElementById('blocked-chip');
+  chip.textContent=n+' key'+(n!==1?'s':'')+' blocked';
+  chip.className='drill-tag '+(n===0?'tag-green':n<5?'tag-orange':'tag-orange');
+  chip.style.background=n===0?'#e8f5e0':n<5?'#fff0e0':'#fce8e8';
+  chip.style.color=n===0?'var(--green)':n<5?'#c04000':'var(--red)';
+}
+
+function focusAttack(){document.getElementById('attack-input').focus();}
+
+document.getElementById('attack-input').addEventListener('input',()=>{
+  if(!attack.gameActive) return;
+  const value=document.getElementById('attack-input').value;
+  if(value.length<attack.typed.length){
+    attack.typed=value;
+    renderTextTo('attack-display',attack.text,attack.typed,[],attack.blockedKeys);
+    return;
+  }
+  const newChar=value[value.length-1];
+  const expected=attack.text[attack.typed.length];
+  attack.keystrokes++;
+  if(newChar!==expected){
+    attack.errors++;
+    document.getElementById('attack-card').classList.add('shake');
+    setTimeout(()=>document.getElementById('attack-card').classList.remove('shake'),250);
+  }
+  attack.typed=value;
+  if(attack.typed.length>=attack.text.length){endAttack(true);return;}
+  renderTextTo('attack-display',attack.text,attack.typed,[],attack.blockedKeys);
+});
+
+function endAttack(won) {
+  attack.gameActive=false;
+  clearInterval(attack.catTimer); clearInterval(attack.timeTimer);
+  const acc=attack.keystrokes===0?100:Math.round(((attack.keystrokes-attack.errors)/attack.keystrokes)*100);
+  if(won){
+    for(let i=0;i<22;i++){
+      setTimeout(()=>{
+        const el=document.createElement('div');
+        el.className='confetti-cat';
+        el.innerHTML=catSVG(CAT_TYPES[Math.floor(Math.random()*CAT_TYPES.length)],30,30);
+        el.style.left=Math.random()*95+'vw';
+        el.style.setProperty('--dur',(2+Math.random()*2)+'s');
+        el.style.animationDelay=(Math.random()*1.2)+'s';
+        document.body.appendChild(el);
+        setTimeout(()=>el.remove(),4500);
+      },i*65);
+    }
+    document.getElementById('win-cat').innerHTML=catSVG('ginger',96,96);
+    document.getElementById('win-sub').textContent=`Accuracy: ${acc}% | Time: ${attack.timeElapsed}s | Lives left: ${attack.lives}`;
+    document.getElementById('win-screen').classList.add('visible');
+  } else {
+    document.getElementById('gameover-cat').innerHTML=catSVG('black',96,96);
+    document.getElementById('gameover-sub').textContent=Object.keys(attack.blockedKeys).length>=10?'Too many cats took over your keyboard!':'You ran out of lives shooing cats!';
+    document.getElementById('gameover-stats').textContent=`Typed: ${attack.typed.length}/${attack.text.length} chars | Accuracy: ${acc}% | Time: ${attack.timeElapsed}s`;
+    document.getElementById('game-over').classList.add('visible');
+  }
+}
+
+function surrenderAttack(){if(attack.gameActive)endAttack(false);}
+function restartAttack(){document.getElementById('game-over').classList.remove('visible');document.getElementById('win-screen').classList.remove('visible');startAttack();}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HEATMAP
+// ══════════════════════════════════════════════════════════════════════════════
+function renderHeatmap() {
+  const vis=document.getElementById('keyboard-visual');
+  vis.innerHTML='';
+  KB_ROWS.forEach(row=>{
+    const rowEl=document.createElement('div');
+    rowEl.className='kb-row';
+    row.forEach(key=>{
+      const el=document.createElement('div');
+      el.className='kb-key'+(KEY_WIDTHS[key]?' '+KEY_WIDTHS[key]:'');
+      const lk=key==='⎵'?'space':key.toLowerCase();
+      const errs=state.errorMap[lk]||0;
+      el.dataset.level=errs===0?0:errs<=2?1:errs<=5?2:3;
+      if(el.dataset.level==='3'){el.innerHTML=catSVG('black',20,20);}
+      else{el.textContent=key;}
+      rowEl.appendChild(el);
+    });
+    vis.appendChild(rowEl);
+  });
+  const total=Object.values(state.errorMap).reduce((a,b)=>a+b,0);
+  const sorted=Object.entries(state.errorMap).sort((a,b)=>b[1]-a[1]);
+  const worst=sorted[0]?sorted[0][0]:'—';
+  const tk=state.keystrokes,te=state.errors;
+  const acc=tk===0?'—':Math.round(((tk-te)/tk)*100)+'%';
+  document.getElementById('h-total').textContent=total;
+  document.getElementById('h-worst').textContent=worst;
+  document.getElementById('h-drills').textContent=state.drillsDone;
+  document.getElementById('h-acc').textContent=acc;
+}
+
+function clearHeatmap(){state.errorMap={};renderHeatmap();buildKeyGrid('key-grid-drill',state.selectedKeys,{},toggleDrillKey);}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GUIDE
+// ══════════════════════════════════════════════════════════════════════════════
+function filterProfGuide(el) {
+  document.querySelectorAll('.prof-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const filter=el.dataset.profguide;
+  document.querySelectorAll('.prof-guide').forEach(g=>{
+    g.classList.toggle('active', filter==='all'||g.dataset.profguide===filter);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();newDrill();}
+  if(e.key==='Escape'){closeResults();resetDrill();}
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
+initBackground();
+buildKeyGrid('key-grid-drill',state.selectedKeys,{},toggleDrillKey);
+newDrill();
+</script>
+</body>
+</html>
