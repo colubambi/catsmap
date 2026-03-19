@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyMap — Keyboard Adaptation Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --bg2: #ede8e0;
+    --bg3: #e3ddd4;
+    --ink: #1a1612;
+    --ink2: #3d3630;
+    --ink3: #6b6059;
+    --accent: #c4411a;
+    --accent2: #e8602a;
+    --green: #2d7a4f;
+    --green-bg: #e8f5ee;
+    --red: #c4411a;
+    --red-bg: #fdf0eb;
+    --amber: #b87d1a;
+    --amber-bg: #fdf6e8;
+    --border: #d4cec4;
+    --font-body: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2.5rem 2rem 4rem;
+  }
+
+  /* Grain texture overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.5;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 780px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .logo-block {}
+
+  .logo {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .tagline {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--ink3);
+    margin-top: 0.3rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    text-align: right;
+  }
+
+  .session-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .session-count {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  /* Phase indicator */
+  .phase-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .phase {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    transition: background 0.3s;
+  }
+
+  .phase.active { background: var(--accent); }
+  .phase.done { background: var(--green); }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .tab {
+    background: transparent;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink3);
+    padding: 0.6rem 1.4rem 0.8rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    position: relative;
+    transition: color 0.15s;
+  }
+
+  .tab:hover { color: var(--ink); }
+
+  .tab.active {
+    color: var(--ink);
+  }
+
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  /* Problem key selector */
+  .problem-key-section {
+    margin-bottom: 2rem;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink3);
+    margin-bottom: 0.75rem;
+  }
+
+  .key-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .key-chip {
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    color: var(--ink2);
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .key-chip:hover {
+    border-color: var(--ink2);
+    background: var(--bg3);
+  }
+
+  .key-chip.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 500;
+  }
+
+  .key-chip.error-key {
+    background: var(--red-bg);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-card-value.good { color: var(--green); }
+  .stat-card-value.warn { color: var(--amber); }
+  .stat-card-value.bad { color: var(--red); }
+
+  .stat-card-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+  }
+
+  /* Main typing card */
+  .typing-card {
+    background: white;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1rem;
+    cursor: text;
+    box-shadow: 4px 4px 0 var(--ink);
+    transition: box-shadow 0.1s;
+  }
+
+  .typing-card:focus-within {
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+
+  .typing-card.shake {
+    animation: shake 0.2s ease;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .drill-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink3);
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .drill-focus {
+    background: var(--accent);
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 500;
+  }
+
+  #text-display {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    line-height: 2;
+    letter-spacing: 0.03em;
+    word-wrap: break-word;
+    user-select: none;
+  }
+
+  .char {
+    color: #c8c0b4;
+    transition: color 0.05s;
+    position: relative;
+  }
+
+  .char.correct { color: var(--ink2); }
+
+  .char.incorrect {
+    color: var(--red);
+    background: var(--red-bg);
+    border-radius: 2px;
+  }
+
+  .char.cursor {
+    position: relative;
+  }
+
+  .char.cursor::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+    animation: blink 0.9s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* Highlighted key chars */
+  .char.focus-key {
+    background: var(--amber-bg);
+    border-radius: 2px;
+  }
+
+  .char.focus-key.correct { background: var(--green-bg); color: var(--green); }
+  .char.focus-key.incorrect { background: var(--red-bg); color: var(--red); }
+
+  #hidden-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Progress */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.15s;
+    width: 0%;
+  }
+
+  .progress-pct {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink3);
+    min-width: 3rem;
+    text-align: right;
+  }
+
+  /* Heatmap */
+  .heatmap-section {
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .heatmap-title {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink3);
+    margin-bottom: 1rem;
+  }
+
+  .keyboard-visual {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .kb-row {
+    display: flex;
+    gap: 4px;
+  }
+
+  .kb-key {
+    width: 34px;
+    height: 32px;
+    border-radius: 5px;
+    background: var(--bg3);
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--ink2);
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .kb-key.wide { width: 52px; }
+  .kb-key.wider { width: 62px; }
+  .kb-key.space { width: 200px; }
+
+  .kb-key[data-errors="0"] { background: var(--bg3); }
+  .kb-key[data-errors="1"] { background: #fdf6e8; border-color: #e8c870; color: var(--amber); }
+  .kb-key[data-errors="2"] { background: #fde8e0; border-color: #e89070; color: var(--accent); }
+  .kb-key[data-errors="3"] { background: #f5d0c5; border-color: var(--red); color: var(--red); font-weight: 700; }
+
+  .kb-key .error-dot {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--red);
+    display: none;
+  }
+
+  .kb-key[data-errors="2"] .error-dot,
+  .kb-key[data-errors="3"] .error-dot { display: block; }
+
+  /* Action bar */
+  .action-bar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .btn-primary {
+    background: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    color: var(--bg);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.65rem 1.75rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    box-shadow: 3px 3px 0 var(--accent);
+  }
+
+  .btn-primary:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--accent);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--ink3);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.65rem 1.25rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: var(--ink2); color: var(--ink); }
+
+  .shortcut-hint {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--ink3);
+    margin-left: auto;
+  }
+
+  .shortcut-hint kbd {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+  }
+
+  /* Results overlay */
+  .results-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(245, 240, 232, 0.88);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .results-overlay.visible {
+    display: flex;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .results-card {
+    background: white;
+    border: 2px solid var(--ink);
+    border-radius: 16px;
+    padding: 2.5rem 3rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .results-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .results-grade {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .result-item {
+    background: var(--bg2);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+  }
+
+  .result-item-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .result-item-label {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+  }
+
+  .worst-keys {
+    background: var(--red-bg);
+    border: 1.5px solid #e8b0a0;
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 2rem;
+  }
+
+  .worst-keys-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--red);
+    margin-bottom: 0.5rem;
+  }
+
+  .worst-keys-list {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .worst-key-badge {
+    background: var(--red);
+    color: white;
+    border-radius: 5px;
+    padding: 0.2rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .advice-box {
+    background: var(--bg2);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 2rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--ink2);
+  }
+
+  .advice-box strong { color: var(--ink); }
+
+  .results-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  /* Tip cards */
+  .tips-section {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1.5px solid var(--border);
+  }
+
+  .tips-title {
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink3);
+    margin-bottom: 1rem;
+  }
+
+  .tips-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .tip-card {
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .tip-number {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .tip-text {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--ink2);
+  }
+
+  .tip-text strong { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header class="header">
+    <div class="logo-block">
+      <div class="logo">Key<span>Map</span></div>
+      <div class="tagline">keyboard adaptation trainer</div>
+    </div>
+    <div class="header-right">
+      <div class="session-label">drills today</div>
+      <div class="session-count" id="session-count">0</div>
+    </div>
+  </header>
+
+  <!-- Phase bar -->
+  <div class="phase-bar" id="phase-bar">
+    <div class="phase active" id="p1"></div>
+    <div class="phase" id="p2"></div>
+    <div class="phase" id="p3"></div>
+    <div class="phase" id="p4"></div>
+    <div class="phase" id="p5"></div>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="tab active" data-mode="targeted">Targeted Drill</button>
+    <button class="tab" data-mode="passage">Full Passage</button>
+    <button class="tab" data-mode="heatmap">Error Heatmap</button>
+  </div>
+
+  <!-- Problem key selector (targeted mode) -->
+  <div id="targeted-panel">
+    <div class="problem-key-section">
+      <div class="section-label">Select your problem keys — the ones you keep missing</div>
+      <div class="key-grid" id="key-grid"></div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-value" id="acc-val">—</div>
+        <div class="stat-card-label">accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="streak-val">0</div>
+        <div class="stat-card-label">streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="errors-val">0</div>
+        <div class="stat-card-label">errors</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="drills-val">0</div>
+        <div class="stat-card-label">drills done</div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-row">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
+
+    <!-- Typing card -->
+    <div class="typing-card" id="typing-card" onclick="focusInput()">
+      <div class="drill-label">
+        <span id="drill-label-text">select problem keys above, then start typing</span>
+        <span class="drill-focus" id="focus-badge" style="display:none"></span>
+      </div>
+      <div id="text-display"></div>
+      <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+      <button class="btn-primary" onclick="newDrill()">New Drill</button>
+      <button class="btn-secondary" onclick="resetStats()">Reset Stats</button>
+      <div class="shortcut-hint"><kbd>Tab</kbd> new drill &nbsp; <kbd>Esc</kbd> reset</div>
+    </div>
+  </div>
+
+  <!-- Passage panel -->
+  <div id="passage-panel" style="display:none">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-value" id="p-acc-val">—</div>
+        <div class="stat-card-label">accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="p-errors-val">0</div>
+        <div class="stat-card-label">errors</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="p-chars-val">0</div>
+        <div class="stat-card-label">chars typed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="p-done-val">0</div>
+        <div class="stat-card-label">passages done</div>
+      </div>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-track">
+        <div class="progress-fill" id="p-progress-fill"></div>
+      </div>
+      <div class="progress-pct" id="p-progress-pct">0%</div>
+    </div>
+
+    <div class="typing-card" id="p-typing-card" onclick="focusPInput()">
+      <div class="drill-label">
+        <span>keyboard adaptation — passage mode</span>
+      </div>
+      <div id="p-text-display"></div>
+      <input type="text" id="p-hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="action-bar">
+      <button class="btn-primary" onclick="newPassage()">Next Passage</button>
+      <div class="shortcut-hint"><kbd>Tab</kbd> next passage</div>
+    </div>
+
+    <div class="tips-section">
+      <div class="tips-title">// adaptation tips</div>
+      <div class="tips-grid">
+        <div class="tip-card">
+          <div class="tip-number">tip 01</div>
+          <div class="tip-text"><strong>Accuracy over speed.</strong> Slow to 50% of your normal pace. Speed returns once your spatial map updates.</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-number">tip 02</div>
+          <div class="tip-text"><strong>Mind the key travel.</strong> Coming from membrane? You're probably pressing too hard on mechanical switches.</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-number">tip 03</div>
+          <div class="tip-text"><strong>Total immersion.</strong> Put the old keyboard away for 72 hours. Switching back resets the learning curve.</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-number">tip 04</div>
+          <div class="tip-text"><strong>Remap if needed.</strong> If you keep hitting the wrong key, use QMK or VIA to move it where your fingers expect it.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heatmap panel -->
+  <div id="heatmap-panel" style="display:none">
+    <div class="heatmap-section">
+      <div class="heatmap-title">// error distribution — darker = more errors on that key</div>
+      <div class="keyboard-visual" id="keyboard-visual"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-value" id="h-total-val">0</div>
+        <div class="stat-card-label">total errors</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="h-worst-val">—</div>
+        <div class="stat-card-label">worst key</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="h-drills-val">0</div>
+        <div class="stat-card-label">total drills</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value" id="h-acc-val">—</div>
+        <div class="stat-card-label">overall acc</div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn-secondary" onclick="clearHeatmap()">Clear Heatmap</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Results overlay -->
+<div class="results-overlay" id="results-overlay">
+  <div class="results-card">
+    <div class="results-header">
+      <div>
+        <div class="results-title">Drill Complete</div>
+        <div style="font-size:0.75rem;color:var(--ink3);margin-top:0.2rem;font-family:var(--font-mono)">session results</div>
+      </div>
+      <div class="results-grade" id="r-grade">B</div>
+    </div>
+
+    <div class="results-grid">
+      <div class="result-item">
+        <div class="result-item-value" id="r-acc">0%</div>
+        <div class="result-item-label">accuracy</div>
+      </div>
+      <div class="result-item">
+        <div class="result-item-value" id="r-errors">0</div>
+        <div class="result-item-label">errors</div>
+      </div>
+      <div class="result-item">
+        <div class="result-item-value" id="r-streak">0</div>
+        <div class="result-item-label">best streak</div>
+      </div>
+      <div class="result-item">
+        <div class="result-item-value" id="r-chars">0</div>
+        <div class="result-item-label">chars typed</div>
+      </div>
+    </div>
+
+    <div class="worst-keys" id="worst-keys-section">
+      <div class="worst-keys-label">keys to keep drilling</div>
+      <div class="worst-keys-list" id="worst-keys-list"></div>
+    </div>
+
+    <div class="advice-box" id="advice-box"></div>
+
+    <div class="results-actions">
+      <button class="btn-primary" onclick="nextDrillFromResults()">Next Drill</button>
+      <button class="btn-secondary" onclick="closeResults()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Key data ─────────────────────────────────────────────────────────────────
+const PROBLEM_KEYS = [
+  'q','w','e','r','t','y','u','i','o','p',
+  'a','s','d','f','g','h','j','k','l',
+  'z','x','c','v','b','n','m',
+  ',','.','/',';',"'",'-','=','[',']',
+  'Tab','Shift','Ctrl','Alt','Backspace'
+];
+
+const KEYBOARD_ROWS = [
+  ['`','1','2','3','4','5','6','7','8','9','0','-','=','←'],
+  ['Tab','q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  ['Caps','a','s','d','f','g','h','j','k','l',';',"'",'↵'],
+  ['⇧','z','x','c','v','b','n','m',',','.','/','⇧'],
+  ['Ctrl','Alt','⎵','Alt','Ctrl']
+];
+
+const KEY_WIDTHS = {
+  '←': 'wide', 'Tab': 'wide', '\\': 'wide', 'Caps': 'wide',
+  '↵': 'wider', '⇧': 'wider', '⎵': 'space', 'Ctrl': 'wide', 'Alt': 'wide'
+};
+
+// Adaptation passages
+const PASSAGES = [
+  "Switching to a new keyboard always feels like walking in someone else's shoes for the first few days. Your muscle memory has to remap the distance between keys. Focus on accuracy over speed.",
+  "The biggest mistake when adapting is trying to maintain your old typing speed immediately. This leads to frustration because you are constantly backspacing. Slow down to about fifty percent of your normal speed.",
+  "If you moved from a laptop membrane keyboard to a mechanical keyboard, the feel is the biggest hurdle. You might be pressing much harder than necessary. Try to let the key actuate without bottoming out.",
+  "Put your old keyboard away for at least seventy two hours of active use. Having the old one nearby makes it too easy to switch back when you get frustrated, which resets your learning curve.",
+  "If your keyboard supports software remapping through VIA or QMK, do not be afraid to move keys that feel wrong. If you keep reaching for the wrong spot, just swap the functions to match your muscle memory.",
+  "Every key on a mechanical keyboard has a specific actuation point. You do not need to press all the way down to register a keystroke. Learning to type shallower reduces fatigue and increases speed over time.",
+  "The spatial map in your brain updates through repetition. Ten to fifteen minutes of focused practice each day is more effective than an hour of frustrated typing. Consistency matters more than duration."
+];
+
+// Drill text generator
+function generateDrillText(focusKeys) {
+  if (!focusKeys || focusKeys.length === 0) {
+    return "select some problem keys above and click new drill to begin your targeted practice session";
+  }
+
+  // Weight focus keys heavily in the generated text
+  const words = {
+    q: ['quite','queen','quick','quote','query','quiet','quill','quiz'],
+    w: ['walk','wave','when','word','work','wrap','write','wrong','wrist'],
+    e: ['each','edge','enter','every','event','eight','empty','equal'],
+    r: ['reach','read','ready','real','rest','right','river','road','root'],
+    t: ['take','talk','tell','test','text','think','track','trust','turn'],
+    y: ['yard','year','yet','yield','youth','your','yellow','yell'],
+    u: ['under','until','upper','urban','user','usual','unit','ultra'],
+    i: ['idea','into','item','its','itself','index','inner','input'],
+    o: ['object','often','once','only','open','order','other','output'],
+    p: ['page','past','path','pick','place','play','point','power','push'],
+    a: ['about','after','again','also','area','around','away','across'],
+    s: ['same','save','send','show','since','size','skill','small','some'],
+    d: ['dark','data','dead','deep','define','detail','does','down','draw'],
+    f: ['fact','fail','fast','feel','find','first','focus','follow','from'],
+    g: ['game','give','good','grab','great','green','grid','grow','guard'],
+    h: ['half','hard','have','help','here','high','hold','home','hour'],
+    j: ['join','just','judge','jump','job','joy','journal','junior'],
+    k: ['keep','key','kind','know','kernel','keyboard','kloud','kit'],
+    l: ['large','last','late','learn','left','less','level','limit','link'],
+    z: ['zero','zone','zoom','zip','zap','zebra','zenith'],
+    x: ['exact','next','text','extra','example','exit','extend','index'],
+    c: ['call','case','code','come','core','cost','count','cover','create'],
+    v: ['value','very','view','void','valid','vector','verify','version'],
+    b: ['back','base','basic','build','bus','buffer','byte','block','board'],
+    n: ['name','need','next','node','null','number','network','new','note'],
+    m: ['main','make','map','mark','match','mode','more','move','must'],
+    ',': ['input, output', 'read, write', 'send, receive', 'up, down', 'left, right'],
+    '.': ['std.lib', 'config.h', 'setup.c', 'main.cpp', 'read.txt'],
+    '/': ['root/path', 'src/main', 'lib/core', 'usr/bin', 'dev/null'],
+    ';': ['int i; int j;', 'return 0;', 'break; continue;', 'end; start;'],
+  };
+
+  let text = '';
+  const wordCount = 20;
+
+  for (let i = 0; i < wordCount; i++) {
+    // Every other word should contain a focus key
+    const useFocusKey = i % 2 === 0 && focusKeys.length > 0;
+    if (useFocusKey) {
+      const fk = focusKeys[i % focusKeys.length];
+      const pool = words[fk.toLowerCase()] || [];
+      if (pool.length > 0) {
+        text += pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        // For special keys, generate a string containing them
+        const genericWords = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had'];
+        text += genericWords[Math.floor(Math.random() * genericWords.length)];
+      }
+    } else {
+      const allKeys = [...focusKeys, 'a', 'e', 'i', 'o', 'u', 's', 't', 'n', 'r'];
+      const fk = allKeys[Math.floor(Math.random() * allKeys.length)];
+      const pool = words[fk.toLowerCase()] || ['the', 'and', 'for', 'but'];
+      text += pool[Math.floor(Math.random() * pool.length)];
+    }
+    if (i < wordCount - 1) text += ' ';
+  }
+
+  return text;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+  mode: 'targeted',
+  selectedKeys: [],
+  currentText: '',
+  typed: '',
+  errors: 0,
+  totalKeystrokes: 0,
+  streak: 0,
+  bestStreak: 0,
+  currentStreak: 0,
+  drillsDone: 0,
+  sessionDrills: 0,
+  errorMap: {}, // key -> error count
+  finished: false,
+  // passage state
+  passageText: '',
+  passageTyped: '',
+  passageErrors: 0,
+  passageKeystrokes: 0,
+  passagesDone: 0,
+};
+
+// ── Build UI ──────────────────────────────────────────────────────────────────
+function buildKeyGrid() {
+  const grid = document.getElementById('key-grid');
+  grid.innerHTML = '';
+  PROBLEM_KEYS.forEach(key => {
+    const chip = document.createElement('div');
+    chip.className = 'key-chip';
+    chip.textContent = key;
+    chip.dataset.key = key;
+    if (state.selectedKeys.includes(key)) chip.classList.add('selected');
+    if ((state.errorMap[key] || 0) > 0) chip.classList.add('error-key');
+    chip.addEventListener('click', () => toggleKey(key));
+    grid.appendChild(chip);
+  });
+}
+
+function buildKeyboard() {
+  const vis = document.getElementById('keyboard-visual');
+  vis.innerHTML = '';
+  KEYBOARD_ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(key => {
+      const keyEl = document.createElement('div');
+      keyEl.className = 'kb-key' + (KEY_WIDTHS[key] ? ' ' + KEY_WIDTHS[key] : '');
+      keyEl.textContent = key;
+      const lk = key.toLowerCase();
+      const errors = state.errorMap[lk] || 0;
+      const level = errors === 0 ? 0 : errors <= 2 ? 1 : errors <= 5 ? 2 : 3;
+      keyEl.dataset.errors = level;
+      keyEl.dataset.key = lk;
+      const dot = document.createElement('div');
+      dot.className = 'error-dot';
+      keyEl.appendChild(dot);
+      rowEl.appendChild(keyEl);
+    });
+    vis.appendChild(rowEl);
+  });
+}
+
+function toggleKey(key) {
+  const idx = state.selectedKeys.indexOf(key);
+  if (idx >= 0) {
+    state.selectedKeys.splice(idx, 1);
+  } else {
+    state.selectedKeys.push(key);
+  }
+  buildKeyGrid();
+  updateFocusBadge();
+}
+
+function updateFocusBadge() {
+  const badge = document.getElementById('focus-badge');
+  if (state.selectedKeys.length > 0) {
+    badge.style.display = 'inline';
+    badge.textContent = 'focus: ' + state.selectedKeys.slice(0, 4).join(' ') + (state.selectedKeys.length > 4 ? ' +' + (state.selectedKeys.length - 4) : '');
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderText(displayId, text, typed, focusKeys) {
+  const display = document.getElementById(displayId);
+  let html = '';
+  const fkSet = new Set((focusKeys || []).map(k => k.toLowerCase()));
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] === ' ' ? '&nbsp;' : text[i];
+    const isFocus = fkSet.has(text[i].toLowerCase());
+    let cls = 'char';
+    if (isFocus) cls += ' focus-key';
+    if (i === typed.length) cls += ' cursor';
+    else if (i < typed.length) {
+      cls += typed[i] === text[i] ? ' correct' : ' incorrect';
+    }
+    html += `<span class="${cls}">${ch}</span>`;
+  }
+  display.innerHTML = html;
+
+  const cursor = display.querySelector('.cursor');
+  if (cursor) cursor.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ── Drill logic ───────────────────────────────────────────────────────────────
+function newDrill() {
+  state.currentText = generateDrillText(state.selectedKeys);
+  state.typed = '';
+  state.errors = 0;
+  state.totalKeystrokes = 0;
+  state.currentStreak = 0;
+  state.finished = false;
+
+  document.getElementById('hidden-input').value = '';
+  renderText('text-display', state.currentText, '', state.selectedKeys);
+  updateStats();
+  updateProgress(0);
+  setDrillLabel('targeted drill — type the highlighted words carefully');
+  focusInput();
+}
+
+function handleInput(e) {
+  if (state.finished) return;
+  const value = document.getElementById('hidden-input').value;
+
+  if (value.length < state.typed.length) {
+    state.typed = value;
+    renderText('text-display', state.currentText, state.typed, state.selectedKeys);
+    updateProgress(state.typed.length / state.currentText.length * 100);
+    return;
+  }
+
+  const newChar = value[value.length - 1];
+  const expected = state.currentText[state.typed.length];
+  state.totalKeystrokes++;
+
+  if (newChar !== expected) {
+    state.errors++;
+    state.currentStreak = 0;
+    // Track error in errorMap
+    const errKey = expected === ' ' ? 'space' : expected.toLowerCase();
+    state.errorMap[errKey] = (state.errorMap[errKey] || 0) + 1;
+    document.getElementById('typing-card').classList.add('shake');
+    setTimeout(() => document.getElementById('typing-card').classList.remove('shake'), 200);
+  } else {
+    state.currentStreak++;
+    if (state.currentStreak > state.bestStreak) state.bestStreak = state.currentStreak;
+  }
+
+  state.typed = value;
+
+  if (state.typed.length >= state.currentText.length) {
+    finishDrill();
+    return;
+  }
+
+  renderText('text-display', state.currentText, state.typed, state.selectedKeys);
+  updateProgress(state.typed.length / state.currentText.length * 100);
+  updateStats();
+}
+
+function finishDrill() {
+  state.finished = true;
+  state.drillsDone++;
+  state.sessionDrills++;
+  document.getElementById('session-count').textContent = state.sessionDrills;
+  document.getElementById('drills-val').textContent = state.drillsDone;
+
+  updatePhaseBar();
+  showResults();
+  buildKeyGrid(); // refresh error keys
+}
+
+function updateStats() {
+  const acc = state.totalKeystrokes === 0 ? '—' :
+    Math.round(((state.totalKeystrokes - state.errors) / state.totalKeystrokes) * 100) + '%';
+
+  const accEl = document.getElementById('acc-val');
+  accEl.textContent = acc;
+  const accNum = parseInt(acc);
+  accEl.className = 'stat-card-value' + (isNaN(accNum) ? '' : accNum >= 95 ? ' good' : accNum >= 80 ? ' warn' : ' bad');
+
+  document.getElementById('streak-val').textContent = state.currentStreak;
+  document.getElementById('errors-val').textContent = state.errors;
+}
+
+function updateProgress(pct) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = Math.round(pct) + '%';
+}
+
+function updatePhaseBar() {
+  for (let i = 1; i <= 5; i++) {
+    const p = document.getElementById('p' + i);
+    if (i < state.drillsDone % 5 + 1) p.className = 'phase done';
+    else if (i === state.drillsDone % 5 + 1) p.className = 'phase active';
+    else p.className = 'phase';
+  }
+}
+
+function setDrillLabel(text) {
+  document.getElementById('drill-label-text').textContent = text;
+}
+
+// ── Results ───────────────────────────────────────────────────────────────────
+function showResults() {
+  const acc = state.totalKeystrokes === 0 ? 0 :
+    Math.round(((state.totalKeystrokes - state.errors) / state.totalKeystrokes) * 100);
+
+  const grade = acc >= 98 ? 'S' : acc >= 95 ? 'A' : acc >= 88 ? 'B' : acc >= 75 ? 'C' : 'D';
+
+  document.getElementById('r-grade').textContent = grade;
+  document.getElementById('r-acc').textContent = acc + '%';
+  document.getElementById('r-errors').textContent = state.errors;
+  document.getElementById('r-streak').textContent = state.bestStreak;
+  document.getElementById('r-chars').textContent = state.typed.length;
+
+  // Worst keys
+  const sorted = Object.entries(state.errorMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const list = document.getElementById('worst-keys-list');
+  list.innerHTML = '';
+  if (sorted.length > 0) {
+    sorted.forEach(([key, count]) => {
+      const badge = document.createElement('div');
+      badge.className = 'worst-key-badge';
+      badge.textContent = key + ' ×' + count;
+      list.appendChild(badge);
+    });
+    document.getElementById('worst-keys-section').style.display = 'block';
+  } else {
+    document.getElementById('worst-keys-section').style.display = 'none';
+  }
+
+  // Advice
+  const advice = acc >= 95
+    ? '<strong>Great run.</strong> Your muscle memory is adapting well. Keep drilling to lock it in.'
+    : acc >= 80
+    ? '<strong>Getting there.</strong> Focus specifically on the highlighted error keys. Try slowing down 20% to break the bad habit.'
+    : '<strong>New keyboard detected.</strong> Slow down to 50% of your normal speed. Accuracy first — speed will follow naturally once your spatial map updates.';
+
+  document.getElementById('advice-box').innerHTML = advice;
+  document.getElementById('results-overlay').classList.add('visible');
+}
+
+function nextDrillFromResults() {
+  closeResults();
+  newDrill();
+}
+
+function closeResults() {
+  document.getElementById('results-overlay').classList.remove('visible');
+}
+
+// ── Passage mode ──────────────────────────────────────────────────────────────
+let passageIndex = 0;
+
+function newPassage() {
+  const passage = PASSAGES[passageIndex % PASSAGES.length];
+  passageIndex++;
+  state.passageText = passage;
+  state.passageTyped = '';
+  state.passageErrors = 0;
+  state.passageKeystrokes = 0;
+
+  document.getElementById('p-hidden-input').value = '';
+  renderText('p-text-display', state.passageText, '', []);
+  updatePassageStats();
+  updatePassageProgress(0);
+  focusPInput();
+}
+
+function handlePassageInput(e) {
+  const value = document.getElementById('p-hidden-input').value;
+
+  if (value.length < state.passageTyped.length) {
+    state.passageTyped = value;
+    renderText('p-text-display', state.passageText, state.passageTyped, []);
+    updatePassageProgress(state.passageTyped.length / state.passageText.length * 100);
+    return;
+  }
+
+  const newChar = value[value.length - 1];
+  const expected = state.passageText[state.passageTyped.length];
+  state.passageKeystrokes++;
+
+  if (newChar !== expected) {
+    state.passageErrors++;
+    const errKey = expected === ' ' ? 'space' : expected.toLowerCase();
+    state.errorMap[errKey] = (state.errorMap[errKey] || 0) + 1;
+    document.getElementById('p-typing-card').classList.add('shake');
+    setTimeout(() => document.getElementById('p-typing-card').classList.remove('shake'), 200);
+  }
+
+  state.passageTyped = value;
+
+  if (state.passageTyped.length >= state.passageText.length) {
+    state.passagesDone++;
+    document.getElementById('p-done-val').textContent = state.passagesDone;
+    updatePassageProgress(100);
+    setTimeout(newPassage, 600);
+    return;
+  }
+
+  renderText('p-text-display', state.passageText, state.passageTyped, []);
+  updatePassageProgress(state.passageTyped.length / state.passageText.length * 100);
+  updatePassageStats();
+}
+
+function updatePassageStats() {
+  const acc = state.passageKeystrokes === 0 ? '—' :
+    Math.round(((state.passageKeystrokes - state.passageErrors) / state.passageKeystrokes) * 100) + '%';
+  document.getElementById('p-acc-val').textContent = acc;
+  document.getElementById('p-errors-val').textContent = state.passageErrors;
+  document.getElementById('p-chars-val').textContent = state.passageTyped.length;
+}
+
+function updatePassageProgress(pct) {
+  document.getElementById('p-progress-fill').style.width = pct + '%';
+  document.getElementById('p-progress-pct').textContent = Math.round(pct) + '%';
+}
+
+// ── Heatmap ───────────────────────────────────────────────────────────────────
+function updateHeatmap() {
+  buildKeyboard();
+  const total = Object.values(state.errorMap).reduce((a, b) => a + b, 0);
+  const sorted = Object.entries(state.errorMap).sort((a, b) => b[1] - a[1]);
+  const worst = sorted[0] ? sorted[0][0] : '—';
+  const totalDrills = state.drillsDone + state.passagesDone;
+  const totalKeystrokes = state.totalKeystrokes + state.passageKeystrokes;
+  const totalErrors = state.errors + state.passageErrors;
+  const acc = totalKeystrokes === 0 ? '—' :
+    Math.round(((totalKeystrokes - totalErrors) / totalKeystrokes) * 100) + '%';
+
+  document.getElementById('h-total-val').textContent = total;
+  document.getElementById('h-worst-val').textContent = worst;
+  document.getElementById('h-drills-val').textContent = totalDrills;
+  document.getElementById('h-acc-val').textContent = acc;
+}
+
+function clearHeatmap() {
+  state.errorMap = {};
+  updateHeatmap();
+  buildKeyGrid();
+}
+
+// ── Focus helpers ─────────────────────────────────────────────────────────────
+function focusInput() { document.getElementById('hidden-input').focus(); }
+function focusPInput() { document.getElementById('p-hidden-input').focus(); }
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    state.mode = tab.dataset.mode;
+
+    document.getElementById('targeted-panel').style.display = state.mode === 'targeted' ? 'block' : 'none';
+    document.getElementById('passage-panel').style.display = state.mode === 'passage' ? 'block' : 'none';
+    document.getElementById('heatmap-panel').style.display = state.mode === 'heatmap' ? 'block' : 'none';
+
+    if (state.mode === 'passage' && !state.passageText) newPassage();
+    if (state.mode === 'heatmap') updateHeatmap();
+  });
+});
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetStats() {
+  state.errors = 0;
+  state.totalKeystrokes = 0;
+  state.streak = 0;
+  state.bestStreak = 0;
+  state.currentStreak = 0;
+  state.drillsDone = 0;
+  state.errorMap = {};
+  updateStats();
+  buildKeyGrid();
+  newDrill();
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    if (state.mode === 'targeted') newDrill();
+    else if (state.mode === 'passage') newPassage();
+  }
+  if (e.key === 'Escape') {
+    closeResults();
+    if (state.mode === 'targeted') { state.typed = ''; document.getElementById('hidden-input').value = ''; renderText('text-display', state.currentText, '', state.selectedKeys); }
+  }
+});
+
+document.getElementById('hidden-input').addEventListener('input', handleInput);
+document.getElementById('p-hidden-input').addEventListener('input', handlePassageInput);
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildKeyGrid();
+newDrill();
+</script>
+</body>
+</html>
