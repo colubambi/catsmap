@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyMap — Keyboard Adaptation Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --bg2: #ede8e0;
+    --bg3: #e3ddd4;
+    --ink: #1a1612;
+    --ink2: #3d3630;
+    --ink3: #6b6059;
+    --accent: #c4411a;
+    --accent2: #e8602a;
+    --green: #2d7a4f;
+    --green-bg: #e8f5ee;
+    --red: #c4411a;
+    --red-bg: #fdf0eb;
+    --amber: #b87d1a;
+    --amber-bg: #fdf6e8;
+    --blue: #1a5fa0;
+    --blue-bg: #e8f0fb;
+    --border: #d4cec4;
+    --font-body: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2.5rem 2rem 4rem;
+  }
+
+  .container { width: 100%; max-width: 820px; }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .logo { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .logo span { color: var(--accent); }
+  .tagline { font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink3); margin-top: 0.3rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .header-badges { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .badge { background: var(--bg3); border: 1.5px solid var(--border); border-radius: 20px; padding: 0.25rem 0.75rem; font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .badge.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+  /* Nav tabs */
+  .nav-tabs { display: flex; gap: 0; margin-bottom: 2rem; border-bottom: 2px solid var(--ink); overflow-x: auto; }
+  .tab { background: transparent; border: none; font-family: var(--font-body); font-size: 0.75rem; font-weight: 600; color: var(--ink3); padding: 0.6rem 1.2rem 0.8rem; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; position: relative; transition: color 0.15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--ink); }
+  .tab.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--accent); }
+
+  /* Section label */
+  .section-label { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 0.75rem; }
+
+  /* Panel */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── SETUP PANEL ─────────────────────────────── */
+  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+
+  .setup-card { background: white; border: 2px solid var(--border); border-radius: 10px; padding: 1.25rem; cursor: pointer; transition: all 0.15s; }
+  .setup-card:hover { border-color: var(--ink2); transform: translateY(-1px); }
+  .setup-card.selected { border-color: var(--accent); background: #fff8f5; box-shadow: 3px 3px 0 var(--accent); }
+
+  .setup-card-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .setup-card-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.2rem; }
+  .setup-card-sub { font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink3); line-height: 1.4; }
+
+  .setup-section { margin-bottom: 2rem; }
+  .setup-section-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .setup-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .transition-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  .transition-card { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .transition-card:hover { border-color: var(--ink2); }
+  .transition-card.selected { border-color: var(--accent); background: #fff8f5; }
+  .transition-card-from { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink3); }
+  .transition-card-arrow { font-size: 1rem; color: var(--accent); margin: 0.2rem 0; }
+  .transition-card-to { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; color: var(--ink); }
+
+  .profession-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+  .profession-card { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 0.9rem 1rem; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 0.75rem; }
+  .profession-card:hover { border-color: var(--ink2); }
+  .profession-card.selected { border-color: var(--accent); background: #fff8f5; }
+  .profession-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .profession-title { font-size: 0.78rem; font-weight: 600; }
+  .profession-sub { font-family: var(--font-mono); font-size: 0.58rem; color: var(--ink3); margin-top: 0.1rem; }
+
+  .btn-start { background: var(--ink); border: 2px solid var(--ink); border-radius: 8px; color: var(--bg); font-family: var(--font-body); font-size: 0.82rem; font-weight: 700; padding: 0.8rem 2.5rem; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.15s; box-shadow: 4px 4px 0 var(--accent); display: block; margin: 0 auto; }
+  .btn-start:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--accent); }
+
+  /* ── DRILL PANEL ─────────────────────────────── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 0.9rem 1rem; }
+  .stat-card-value { font-size: 1.6rem; font-weight: 700; color: var(--ink); line-height: 1; margin-bottom: 0.15rem; }
+  .stat-card-value.good { color: var(--green); }
+  .stat-card-value.warn { color: var(--amber); }
+  .stat-card-value.bad { color: var(--red); }
+  .stat-card-label { font-family: var(--font-mono); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); }
+
+  .progress-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+  .progress-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.1s; width: 0%; }
+  .progress-pct { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink3); min-width: 3rem; text-align: right; }
+
+  .phase-bar { display: flex; gap: 0.4rem; margin-bottom: 1.5rem; }
+  .phase { flex: 1; height: 3px; background: var(--border); border-radius: 2px; transition: background 0.3s; }
+  .phase.active { background: var(--accent); }
+  .phase.done { background: var(--green); }
+
+  .typing-card { background: white; border: 2px solid var(--ink); border-radius: 12px; padding: 1.75rem 2.25rem; margin-bottom: 1rem; cursor: text; box-shadow: 4px 4px 0 var(--ink); transition: box-shadow 0.1s; }
+  .typing-card:focus-within { box-shadow: 6px 6px 0 var(--ink); }
+  .typing-card.shake { animation: shake 0.2s ease; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+  .drill-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+  .drill-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .drill-tags { display: flex; gap: 0.4rem; }
+  .drill-tag { background: var(--accent); color: white; padding: 0.12rem 0.5rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.58rem; font-weight: 500; }
+  .drill-tag.green { background: var(--green); }
+  .drill-tag.blue { background: var(--blue); }
+
+  #text-display { font-family: var(--font-mono); font-size: 1.05rem; line-height: 2; letter-spacing: 0.02em; word-wrap: break-word; user-select: none; }
+
+  .char { color: #c0b8b0; transition: color 0.05s; position: relative; }
+  .char.correct { color: var(--ink2); }
+  .char.incorrect { color: var(--red); background: var(--red-bg); border-radius: 2px; }
+  .char.cursor { position: relative; }
+  .char.cursor::before { content: ''; position: absolute; left: 0; top: 0.12em; bottom: 0.12em; width: 2px; background: var(--accent); border-radius: 1px; animation: blink 0.9s step-end infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .char.focus-key { background: var(--amber-bg); border-radius: 2px; }
+  .char.focus-key.correct { background: var(--green-bg); color: var(--green); }
+  .char.focus-key.incorrect { background: var(--red-bg); color: var(--red); }
+
+  #hidden-input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+
+  .action-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 2rem; }
+  .btn-primary { background: var(--ink); border: 2px solid var(--ink); border-radius: 8px; color: var(--bg); font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; padding: 0.6rem 1.5rem; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.15s; box-shadow: 3px 3px 0 var(--accent); }
+  .btn-primary:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--accent); }
+  .btn-secondary { background: transparent; border: 2px solid var(--border); border-radius: 8px; color: var(--ink3); font-family: var(--font-body); font-size: 0.75rem; font-weight: 600; padding: 0.6rem 1.1rem; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.15s; }
+  .btn-secondary:hover { border-color: var(--ink2); color: var(--ink); }
+  .shortcut-hint { font-family: var(--font-mono); font-size: 0.6rem; color: var(--ink3); margin-left: auto; }
+  .shortcut-hint kbd { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 0.1rem 0.35rem; font-family: var(--font-mono); font-size: 0.6rem; }
+
+  /* Key selector */
+  .key-selector-row { display: flex; align-items: flex-start; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .key-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; flex: 1; }
+  .key-chip { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 6px; font-family: var(--font-mono); font-size: 0.75rem; padding: 0.3rem 0.65rem; cursor: pointer; color: var(--ink2); transition: all 0.12s; user-select: none; }
+  .key-chip:hover { border-color: var(--ink2); }
+  .key-chip.selected { background: var(--accent); border-color: var(--accent); color: white; }
+  .key-chip.has-errors { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+
+  /* ── HEATMAP ────────────────────────────────── */
+  .heatmap-wrap { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .keyboard-visual { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+  .kb-row { display: flex; gap: 4px; }
+  .kb-key { width: 34px; height: 32px; border-radius: 5px; background: var(--bg3); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.6rem; color: var(--ink2); position: relative; transition: all 0.2s; }
+  .kb-key.wide { width: 52px; }
+  .kb-key.wider { width: 62px; }
+  .kb-key.widest { width: 78px; }
+  .kb-key.space { width: 200px; }
+  .kb-key[data-level="1"] { background: #fdf6e8; border-color: #e8c870; color: var(--amber); }
+  .kb-key[data-level="2"] { background: #fde8e0; border-color: #e89070; color: var(--accent); }
+  .kb-key[data-level="3"] { background: #f0c8b8; border-color: var(--red); color: var(--red); font-weight: 700; }
+  .error-dot { position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); display: none; }
+  .kb-key[data-level="2"] .error-dot,
+  .kb-key[data-level="3"] .error-dot { display: block; }
+
+  /* ── GUIDE PANEL ─────────────────────────────── */
+  .guide-section { margin-bottom: 2rem; }
+  .guide-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .guide-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .guide-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .guide-card { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 1rem; }
+  .guide-card-num { font-family: var(--font-mono); font-size: 0.58rem; color: var(--accent); font-weight: 500; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  .guide-card-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .guide-card-text { font-size: 0.78rem; line-height: 1.5; color: var(--ink2); }
+
+  .profession-guide { display: none; }
+  .profession-guide.active { display: block; }
+
+  .prof-header { background: white; border: 2px solid var(--ink); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; box-shadow: 3px 3px 0 var(--ink); }
+  .prof-icon-lg { font-size: 2.5rem; }
+  .prof-title-lg { font-size: 1.1rem; font-weight: 800; }
+  .prof-sub-lg { font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink3); margin-top: 0.2rem; }
+
+  .habit-list { list-style: none; }
+  .habit-item { display: flex; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+  .habit-item:last-child { border-bottom: none; }
+  .habit-bullet { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 0.5rem; }
+  .habit-text { font-size: 0.82rem; line-height: 1.5; color: var(--ink2); }
+  .habit-text strong { color: var(--ink); }
+
+  /* ── RESULTS OVERLAY ─────────────────────────── */
+  .results-overlay { display: none; position: fixed; inset: 0; background: rgba(245,240,232,0.9); backdrop-filter: blur(6px); z-index: 50; align-items: center; justify-content: center; }
+  .results-overlay.visible { display: flex; animation: slideUp 0.3s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .results-card { background: white; border: 2px solid var(--ink); border-radius: 16px; padding: 2.5rem; max-width: 480px; width: 90%; box-shadow: 8px 8px 0 var(--ink); }
+  .results-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.75rem; }
+  .results-title { font-size: 1.4rem; font-weight: 800; }
+  .results-subtitle { font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink3); margin-top: 0.2rem; }
+  .results-grade { font-size: 2.8rem; font-weight: 800; color: var(--accent); line-height: 1; }
+  .results-grade.s { color: var(--green); }
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem; }
+  .r-item { background: var(--bg2); border-radius: 8px; padding: 0.8rem; }
+  .r-val { font-size: 1.5rem; font-weight: 700; line-height: 1; margin-bottom: 0.15rem; }
+  .r-lbl { font-family: var(--font-mono); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); }
+  .results-advice { background: var(--bg2); border-radius: 8px; padding: 0.9rem; font-size: 0.8rem; line-height: 1.5; color: var(--ink2); margin-bottom: 1.25rem; }
+  .worst-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .worst-badge { background: var(--red); color: white; border-radius: 5px; padding: 0.2rem 0.55rem; font-family: var(--font-mono); font-size: 0.75rem; }
+  .results-actions { display: flex; gap: 0.75rem; }
+
+  /* Profession filter */
+  .prof-filter { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .prof-pill { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 20px; padding: 0.3rem 0.9rem; font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink3); cursor: pointer; transition: all 0.12s; text-transform: uppercase; letter-spacing: 0.06em; }
+  .prof-pill:hover { border-color: var(--ink2); color: var(--ink); }
+  .prof-pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="header">
+    <div>
+      <div class="logo">Key<span>Map</span></div>
+      <div class="tagline">keyboard adaptation trainer</div>
+    </div>
+    <div class="header-badges">
+      <div class="badge" id="kb-badge">keyboard: —</div>
+      <div class="badge" id="trans-badge">transition: —</div>
+      <div class="badge" id="prof-badge">role: —</div>
+    </div>
+  </header>
+
+  <!-- Nav -->
+  <div class="nav-tabs">
+    <button class="tab active" data-tab="setup">Setup</button>
+    <button class="tab" data-tab="drill">Drill</button>
+    <button class="tab" data-tab="heatmap">Heatmap</button>
+    <button class="tab" data-tab="guide">Guide</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- SETUP PANEL -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="panel active" id="panel-setup">
+
+    <div class="setup-section">
+      <div class="setup-section-title">Your new keyboard type</div>
+      <div class="setup-grid">
+        <div class="setup-card" data-kb="mechanical" onclick="selectKB(this)">
+          <div class="setup-card-icon">⌨️</div>
+          <div class="setup-card-title">Mechanical</div>
+          <div class="setup-card-sub">Individual switches per key — linear, tactile, or clicky. Longer travel than laptop.</div>
+        </div>
+        <div class="setup-card" data-kb="membrane" onclick="selectKB(this)">
+          <div class="setup-card-icon">🖥️</div>
+          <div class="setup-card-title">Membrane / Rubber Dome</div>
+          <div class="setup-card-sub">Soft, quiet, mushy feel. Common office boards. Shorter travel.</div>
+        </div>
+        <div class="setup-card" data-kb="scissor" onclick="selectKB(this)">
+          <div class="setup-card-icon">💻</div>
+          <div class="setup-card-title">Scissor / Laptop</div>
+          <div class="setup-card-sub">Very low profile, short travel. Used in most laptops and slim keyboards.</div>
+        </div>
+        <div class="setup-card" data-kb="optical" onclick="selectKB(this)">
+          <div class="setup-card-icon">⚡</div>
+          <div class="setup-card-title">Optical / Hall Effect</div>
+          <div class="setup-card-sub">Registers via light or magnets. Rapid Trigger capable. No debounce delay.</div>
+        </div>
+        <div class="setup-card" data-kb="split" onclick="selectKB(this)">
+          <div class="setup-card-icon">✌️</div>
+          <div class="setup-card-title">Split / Ergonomic</div>
+          <div class="setup-card-sub">Two halves at shoulder width. Alice, Kinesis, Moonlander. Large spatial re-mapping.</div>
+        </div>
+        <div class="setup-card" data-kb="ortholinear" onclick="selectKB(this)">
+          <div class="setup-card-icon">▦</div>
+          <div class="setup-card-title">Ortholinear</div>
+          <div class="setup-card-sub">Keys in straight columns, not staggered. Planck, Preonic. Requires full re-learning.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-section-title">Transition type</div>
+      <div class="transition-grid">
+        <div class="transition-card" data-trans="laptop-mech" onclick="selectTrans(this)">
+          <div class="transition-card-from">laptop / scissor</div>
+          <div class="transition-card-arrow">↓</div>
+          <div class="transition-card-to">mechanical</div>
+        </div>
+        <div class="transition-card" data-trans="mech-laptop" onclick="selectTrans(this)">
+          <div class="transition-card-from">mechanical</div>
+          <div class="transition-card-arrow">↑</div>
+          <div class="transition-card-to">laptop / scissor</div>
+        </div>
+        <div class="transition-card" data-trans="membrane-mech" onclick="selectTrans(this)">
+          <div class="transition-card-from">membrane</div>
+          <div class="transition-card-arrow">↓</div>
+          <div class="transition-card-to">mechanical</div>
+        </div>
+        <div class="transition-card" data-trans="standard-split" onclick="selectTrans(this)">
+          <div class="transition-card-from">standard layout</div>
+          <div class="transition-card-arrow">→</div>
+          <div class="transition-card-to">split / ergonomic</div>
+        </div>
+        <div class="transition-card" data-trans="staggered-ortho" onclick="selectTrans(this)">
+          <div class="transition-card-from">staggered</div>
+          <div class="transition-card-arrow">→</div>
+          <div class="transition-card-to">ortholinear</div>
+        </div>
+        <div class="transition-card" data-trans="size-change" onclick="selectTrans(this)">
+          <div class="transition-card-from">full-size / TKL</div>
+          <div class="transition-card-arrow">↔</div>
+          <div class="transition-card-to">60% / 65% compact</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-section-title">Your profession / typing style</div>
+      <div class="profession-grid">
+        <div class="profession-card" data-prof="developer" onclick="selectProf(this)">
+          <div class="profession-icon">💻</div>
+          <div><div class="profession-title">Developer / Engineer</div><div class="profession-sub">shortcuts, layers, vim, code navigation</div></div>
+        </div>
+        <div class="profession-card" data-prof="writer" onclick="selectProf(this)">
+          <div class="profession-icon">✍️</div>
+          <div><div class="profession-title">Writer / Journalist</div><div class="profession-sub">flow state, touch typing, long sessions</div></div>
+        </div>
+        <div class="profession-card" data-prof="gamer" onclick="selectProf(this)">
+          <div class="profession-icon">🎮</div>
+          <div><div class="profession-title">Gamer</div><div class="profession-sub">WASD, APM, reaction time, key rollover</div></div>
+        </div>
+        <div class="profession-card" data-prof="data" onclick="selectProf(this)">
+          <div class="profession-icon">📊</div>
+          <div><div class="profession-title">Data Entry / Finance</div><div class="profession-sub">numpad, accuracy, right-hand dominance</div></div>
+        </div>
+        <div class="profession-card" data-prof="student" onclick="selectProf(this)">
+          <div class="profession-icon">🎓</div>
+          <div><div class="profession-title">Student</div><div class="profession-sub">notes, speed, general typing</div></div>
+        </div>
+        <div class="profession-card" data-prof="general" onclick="selectProf(this)">
+          <div class="profession-icon">⌨️</div>
+          <div><div class="profession-title">General / Mixed</div><div class="profession-sub">all-purpose, no specialization</div></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="startDrilling()">Start Drilling →</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- DRILL PANEL -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-drill">
+
+    <div class="phase-bar" id="phase-bar">
+      <div class="phase active" id="p1"></div>
+      <div class="phase" id="p2"></div>
+      <div class="phase" id="p3"></div>
+      <div class="phase" id="p4"></div>
+      <div class="phase" id="p5"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-card-value" id="acc-val">—</div><div class="stat-card-label">accuracy</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="streak-val">0</div><div class="stat-card-label">streak</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="errors-val">0</div><div class="stat-card-label">errors</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="drills-val">0</div><div class="stat-card-label">drills done</div></div>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
+
+    <div class="key-selector-row">
+      <div>
+        <div class="section-label">Problem keys</div>
+        <div class="key-grid" id="key-grid"></div>
+      </div>
+    </div>
+
+    <div class="typing-card" id="typing-card" onclick="focusInput()">
+      <div class="drill-meta">
+        <span class="drill-label" id="drill-label">select problem keys, then type</span>
+        <div class="drill-tags" id="drill-tags"></div>
+      </div>
+      <div id="text-display"></div>
+      <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="action-bar">
+      <button class="btn-primary" onclick="newDrill()">New Drill</button>
+      <button class="btn-secondary" onclick="resetAll()">Reset</button>
+      <div class="shortcut-hint"><kbd>Tab</kbd> new drill &nbsp;<kbd>Esc</kbd> reset</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- HEATMAP PANEL -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-heatmap">
+    <div class="heatmap-wrap">
+      <div class="section-label" style="margin-bottom:1rem">error distribution — warmer colour = more errors on that key</div>
+      <div class="keyboard-visual" id="keyboard-visual"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-card-value" id="h-total">0</div><div class="stat-card-label">total errors</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="h-worst">—</div><div class="stat-card-label">worst key</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="h-drills">0</div><div class="stat-card-label">total drills</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="h-acc">—</div><div class="stat-card-label">overall acc</div></div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn-secondary" onclick="clearHeatmap()">Clear Heatmap</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- GUIDE PANEL -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="panel" id="panel-guide">
+
+    <div class="guide-section">
+      <div class="guide-section-title">Universal adaptation tips</div>
+      <div class="guide-cards">
+        <div class="guide-card">
+          <div class="guide-card-num">tip 01</div>
+          <div class="guide-card-title">Accuracy first, always</div>
+          <div class="guide-card-text">Slow to 50% of your normal speed. Your brain needs to build a new spatial map. Speed returns automatically — but muscle memory built on errors doesn't.</div>
+        </div>
+        <div class="guide-card">
+          <div class="guide-card-num">tip 02</div>
+          <div class="guide-card-title">Don't bottom out</div>
+          <div class="guide-card-text">Mechanical and optical switches actuate before the bottom. Train yourself to type shallower — it reduces fatigue and increases speed once the habit locks in.</div>
+        </div>
+        <div class="guide-card">
+          <div class="guide-card-num">tip 03</div>
+          <div class="guide-card-title">72-hour immersion rule</div>
+          <div class="guide-card-text">Put the old keyboard in a drawer. Switching back resets your learning curve every time. Commit to the new board for 72 hours of active use minimum.</div>
+        </div>
+        <div class="guide-card">
+          <div class="guide-card-num">tip 04</div>
+          <div class="guide-card-title">Remap instead of fight</div>
+          <div class="guide-card-text">If you keep reaching in the wrong direction for Delete, Home, or a bracket, use VIA or QMK to move it. Adapt the keyboard to your hands, not the other way around.</div>
+        </div>
+        <div class="guide-card">
+          <div class="guide-card-num">tip 05</div>
+          <div class="guide-card-title">Key travel awareness</div>
+          <div class="guide-card-text">Coming from scissor to mechanical? The keys are taller. Coming from mechanical to laptop? Much shallower. Your fingers need to recalibrate lift height between rows.</div>
+        </div>
+        <div class="guide-card">
+          <div class="guide-card-num">tip 06</div>
+          <div class="guide-card-title">10–15 min focused drills</div>
+          <div class="guide-card-text">Short, deliberate practice beats frustrated hour-long sessions. 10 minutes of targeted drilling on your problem keys daily will outperform grinding through work emails.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-section">
+      <div class="guide-section-title">Profession typing habits</div>
+      <div class="prof-filter">
+        <button class="prof-pill active" data-profguide="all" onclick="filterProfGuide(this)">All</button>
+        <button class="prof-pill" data-profguide="developer" onclick="filterProfGuide(this)">Developer</button>
+        <button class="prof-pill" data-profguide="writer" onclick="filterProfGuide(this)">Writer</button>
+        <button class="prof-pill" data-profguide="gamer" onclick="filterProfGuide(this)">Gamer</button>
+        <button class="prof-pill" data-profguide="data" onclick="filterProfGuide(this)">Data Entry</button>
+      </div>
+
+      <div class="profession-guide active" data-profguide="developer">
+        <div class="prof-header">
+          <div class="prof-icon-lg">💻</div>
+          <div><div class="prof-title-lg">Developer / Engineer</div><div class="prof-sub-lg">keyboard-first workflow, layers, navigation</div></div>
+        </div>
+        <ul class="habit-list">
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Layer dependency:</strong> Developers on 60–65% boards remap arrow keys and F-row via Fn layers. If you've switched keyboard sizes, re-learning your layer positions is the primary task.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Vim/Emacs keybindings:</strong> hjkl navigation, Ctrl combos, and custom bindings mean your modifier key positions matter enormously. Mismatch here breaks flow instantly.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Snippet triggers:</strong> Short trigger words expanded via Tab (clg → console.log) are invisible to WPM tools but critical to developer speed. Re-test your IDE snippets on the new board.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Bracket and symbol accuracy:</strong> [] {} () ; : are typed hundreds of times per session. These are your highest-value keys to drill first after a keyboard change.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Mouse minimization:</strong> Strong developers use the keyboard exclusively for everything possible. Any disruption to your Ctrl/Shift/Alt positions will cost you more time than slow typing.</div></li>
+        </ul>
+      </div>
+
+      <div class="profession-guide" data-profguide="writer">
+        <div class="prof-header">
+          <div class="prof-icon-lg">✍️</div>
+          <div><div class="prof-title-lg">Writer / Journalist</div><div class="prof-sub-lg">flow state, touch typing, RSI prevention</div></div>
+        </div>
+        <ul class="habit-list">
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Flow state protection:</strong> Writers depend on unbroken rhythm. A new keyboard disrupts this more than it does for other professions. Give yourself at least a week before writing professionally on it.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Touch typing essential:</strong> Professional writers always touch-type — eyes on screen, not keys. This is non-negotiable. If your new board tempts you to look down, discipline that habit out immediately.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Ergonomics matter most here:</strong> 8+ hours of typing daily makes wrist angle and elbow position critical. A split or ergonomic keyboard change is worth the longer adaptation curve for RSI prevention.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Vomit draft habit:</strong> Many writers type without looking at the screen to maintain momentum. This is broken by keyboard changes. Rebuild it deliberately — practice blind paragraphs.</div></li>
+        </ul>
+      </div>
+
+      <div class="profession-guide" data-profguide="gamer">
+        <div class="prof-header">
+          <div class="prof-icon-lg">🎮</div>
+          <div><div class="prof-title-lg">Gamer</div><div class="prof-sub-lg">WASD home row, APM, reaction time</div></div>
+        </div>
+        <ul class="habit-list">
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>WASD not ASDF:</strong> Gamers rest on W, A, S, D — not the standard ASDF home row. Switching keyboards often means re-calibrating the distance from W to Q, Tab, and surrounding keys.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Polling rate matters:</strong> Gamers should specifically check that a new keyboard has 1000Hz+ polling rate and full N-Key Rollover. Ghosting on a competitive board is a dealbreaker.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Keyboard tilting:</strong> Many pros tilt the keyboard at a 45° angle for mouse room and natural wrist angle. If you've switched to a wider board, re-establishing your tilt angle is part of the adaptation.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Actuation point sensitivity:</strong> Hall Effect boards allow adjustable actuation depth. Set it deep initially while adapting — false triggers from accidental presses are a training issue, not a hardware one.</div></li>
+        </ul>
+      </div>
+
+      <div class="profession-guide" data-profguide="data">
+        <div class="prof-header">
+          <div class="prof-icon-lg">📊</div>
+          <div><div class="prof-title-lg">Data Entry / Finance</div><div class="prof-sub-lg">numpad, blind entry, right-hand dominance</div></div>
+        </div>
+        <ul class="habit-list">
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Numpad home position:</strong> Professional data entry uses the 5 key (which has a physical bump) as the home position on the numpad. Switching to a TKL board that removes the numpad is a significant workflow disruption.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Right-hand dominance:</strong> Left hand handles shortcuts (Ctrl+C, Tab, Backspace) while right hand stays on the numpad. Verify this workflow still works on your new layout before committing.</div></li>
+          <li class="habit-item"><div class="habit-bullet"></div><div class="habit-text"><strong>Blind numpad entry:</strong> A skilled data entry professional never looks at the numpad. If your new keyboard has a different numpad layout or keycap height, rebuild this muscle memory deliberately.</div></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Results overlay -->
+<div class="results-overlay" id="results-overlay">
+  <div class="results-card">
+    <div class="results-top">
+      <div><div class="results-title">Drill Complete</div><div class="results-subtitle" id="r-context">targeted drill</div></div>
+      <div class="results-grade" id="r-grade">B</div>
+    </div>
+    <div class="results-grid">
+      <div class="r-item"><div class="r-val" id="r-acc">0%</div><div class="r-lbl">accuracy</div></div>
+      <div class="r-item"><div class="r-val" id="r-errors">0</div><div class="r-lbl">errors</div></div>
+      <div class="r-item"><div class="r-val" id="r-streak">0</div><div class="r-lbl">best streak</div></div>
+      <div class="r-item"><div class="r-val" id="r-chars">0</div><div class="r-lbl">chars typed</div></div>
+    </div>
+    <div class="worst-row" id="worst-row"></div>
+    <div class="results-advice" id="r-advice"></div>
+    <div class="results-actions">
+      <button class="btn-primary" onclick="nextDrillFromResults()">Next Drill</button>
+      <button class="btn-secondary" onclick="closeResults()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+const KEYBOARD_ROWS = [
+  ['`','1','2','3','4','5','6','7','8','9','0','-','=','←'],
+  ['Tab','q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  ['Caps','a','s','d','f','g','h','j','k','l',';',"'",'↵'],
+  ['⇧','z','x','c','v','b','n','m',',','.','/','⇧'],
+  ['Ctrl','Alt','⎵','Alt','Ctrl']
+];
+const KEY_WIDTHS = { '←':'wide','Tab':'wide','\\':'wide','Caps':'wide','↵':'wider','⇧':'wider','⎵':'space','Ctrl':'wide','Alt':'wide' };
+
+const PROBLEM_KEYS = ['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m',',','.','/',';',"'",'-','=','[',']','Tab','Shift'];
+
+// Word pools
+const WORDS = {
+  q:['quite','queen','quick','quote','query','quiet','quiz','quill','quest'],
+  w:['walk','wave','when','word','work','wrap','write','wrong','wrist','watch'],
+  e:['each','edge','enter','every','event','eight','empty','equal','embed'],
+  r:['reach','read','ready','real','rest','right','river','road','root','run'],
+  t:['take','talk','tell','test','text','think','track','trust','turn','type'],
+  y:['yard','year','yet','yield','your','yellow','yell','young'],
+  u:['under','until','upper','urban','user','usual','unit','ultra','unique'],
+  i:['idea','into','item','its','itself','index','inner','input','image'],
+  o:['object','often','once','only','open','order','other','output','offset'],
+  p:['page','path','pick','place','play','point','power','push','put','port'],
+  a:['about','after','again','also','area','around','away','across','adapt'],
+  s:['same','save','send','show','since','size','skill','small','some','set'],
+  d:['dark','data','dead','deep','define','detail','does','down','draw','debug'],
+  f:['fact','fail','fast','feel','find','first','focus','follow','from','flash'],
+  g:['game','give','good','grab','great','green','grid','grow','guard','get'],
+  h:['half','hard','have','help','here','high','hold','home','hour','handle'],
+  j:['join','just','judge','jump','job','joy','journal','junior','jump'],
+  k:['keep','key','kind','know','kernel','keyboard','kit','kill'],
+  l:['large','last','late','learn','left','less','level','limit','link','load'],
+  z:['zero','zone','zoom','zip','zap','zenith'],
+  x:['exact','next','text','extra','example','exit','extend','index','flux'],
+  c:['call','case','code','come','core','cost','count','cover','create','char'],
+  v:['value','very','view','void','valid','vector','verify','version','void'],
+  b:['back','base','basic','build','bus','buffer','byte','block','board','bit'],
+  n:['name','need','next','node','null','number','network','new','note','near'],
+  m:['main','make','map','mark','match','mode','more','move','must','mount'],
+  ',':['input, output','read, write','send, receive','add, remove','up, down'],
+  '.':['main.c','config.h','setup.cpp','read.txt','kernel.c'],
+  '/':['root/path','src/main','lib/core','usr/bin','dev/null'],
+  ';':['int i; int j;','return 0;','end; start;','break; next;'],
+};
+
+// Profession-specific word sets
+const PROF_WORDS = {
+  developer: ['function','variable','return','const','struct','pointer','malloc','kernel','driver','module','socket','thread','mutex','signal','debug','compile','deploy','branch','commit','merge','refactor','typedef','callback','interrupt','register','bitwise','bitmask','protocol','interface','buffer','overflow','stack','heap','runtime','compile'],
+  writer: ['paragraph','sentence','metaphor','narrative','character','dialogue','setting','conflict','resolution','tension','theme','voice','draft','revision','manuscript','deadline','article','column','feature','editorial'],
+  gamer: ['respawn','cooldown','loadout','stamina','inventory','crafting','checkpoint','framerate','latency','hitbox','quickscope','strafe','crouch','sprint','reload','ultimate','passive','ability'],
+  data: ['spreadsheet','formula','dataset','column','pivot','aggregate','average','median','deviation','variance','regression','forecast','budget','revenue','margin','quarterly','fiscal','audit','reconcile'],
+  student: ['assignment','lecture','tutorial','deadline','revision','concept','theorem','equation','experiment','hypothesis','conclusion','reference','citation','abstract','summary'],
+  general: ['the','be','to','of','and','in','that','have','it','for','not','with','he','as','you','do','at','this','but','his','from','they','we','say','one','all','would','there','their','what','so','up','out']
+};
+
+// Adaptation passages
+const PASSAGES = [
+  "Switching to a new keyboard always feels like walking in someone else's shoes for a few days. Your muscle memory has to remap the distance between keys. Focus on accuracy over speed.",
+  "The biggest mistake when adapting is trying to maintain your old typing speed immediately. Slow down to fifty percent of your normal speed. Speed returns once your spatial map updates.",
+  "If you moved from a laptop keyboard to a mechanical board, the feel is the biggest hurdle. You might be pressing much harder than necessary. Try to let the key actuate without bottoming out.",
+  "Put your old keyboard away for at least seventy two hours. Having the old one nearby makes it too easy to switch back when frustrated, which resets your learning curve completely.",
+  "If your keyboard supports software remapping through VIA or QMK, do not be afraid to move keys that feel wrong. If you keep hitting the wrong key, just swap the functions to match your hands.",
+  "Every key on a mechanical keyboard has a specific actuation point. You do not need to press all the way down to register a keystroke. Learning to type shallower reduces fatigue significantly."
+];
+
+// Transition-specific advice
+const TRANS_ADVICE = {
+  'laptop-mech': 'Your main challenge is key travel — mechanical keys are much taller. Your fingers are lifting too high between rows. Focus on lighter, shallower keypresses. You are probably bottoming out every key.',
+  'mech-laptop': 'Mechanical to laptop is surprisingly hard. The keys are much shallower and closer together. Focus on precision over speed — laptop keys punish misses more than mechanical.',
+  'membrane-mech': 'Membrane boards have no tactile feedback — you have been relying on bottoming out to know a key registered. On mechanical, the key registers before you bottom. Train lighter keypresses.',
+  'standard-split': 'Split keyboards require re-learning key positions for keys near the centre. B, Y, T, G, H and the number row are your highest-risk keys. Expect two to three weeks before this feels natural.',
+  'staggered-ortho': 'Ortholinear removes the stagger your fingers have been trained on for years. This is one of the hardest transitions. Focus specifically on columns — your pinkies and ring fingers will struggle most.',
+  'size-change': 'Going compact means keys that were dedicated are now on layers. Your Fn key position and layer combos are the critical thing to drill. Arrow keys, function row, and Delete are the usual casualties.'
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+  kb: null, transition: null, profession: 'general',
+  selectedKeys: [],
+  currentText: '', typed: '',
+  errors: 0, totalKeystrokes: 0,
+  currentStreak: 0, bestStreak: 0,
+  drillsDone: 0,
+  errorMap: {},
+  finished: false,
+  passageIdx: 0
+};
+
+// ── Setup selectors ───────────────────────────────────────────────────────────
+function selectKB(el) {
+  document.querySelectorAll('.setup-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.kb = el.dataset.kb;
+  document.getElementById('kb-badge').textContent = 'keyboard: ' + el.querySelector('.setup-card-title').textContent.toLowerCase().split(' ')[0];
+  document.getElementById('kb-badge').classList.add('active');
+}
+
+function selectTrans(el) {
+  document.querySelectorAll('.transition-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.transition = el.dataset.trans;
+  const from = el.querySelector('.transition-card-from').textContent;
+  const to = el.querySelector('.transition-card-to').textContent;
+  document.getElementById('trans-badge').textContent = from + ' → ' + to;
+  document.getElementById('trans-badge').classList.add('active');
+}
+
+function selectProf(el) {
+  document.querySelectorAll('.profession-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.profession = el.dataset.prof;
+  document.getElementById('prof-badge').textContent = 'role: ' + el.querySelector('.profession-title').textContent.toLowerCase();
+  document.getElementById('prof-badge').classList.add('active');
+}
+
+function startDrilling() {
+  switchTab('drill');
+  buildKeyGrid();
+  newDrill();
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tabName));
+  if (tabName === 'heatmap') updateHeatmap();
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+// ── Key grid ──────────────────────────────────────────────────────────────────
+function buildKeyGrid() {
+  const grid = document.getElementById('key-grid');
+  grid.innerHTML = '';
+  PROBLEM_KEYS.forEach(key => {
+    const chip = document.createElement('div');
+    chip.className = 'key-chip' + (state.selectedKeys.includes(key) ? ' selected' : '') + ((state.errorMap[key.toLowerCase()] || 0) > 0 ? ' has-errors' : '');
+    chip.textContent = key;
+    chip.addEventListener('click', () => {
+      const idx = state.selectedKeys.indexOf(key);
+      if (idx >= 0) state.selectedKeys.splice(idx, 1);
+      else state.selectedKeys.push(key);
+      buildKeyGrid();
+    });
+    grid.appendChild(chip);
+  });
+}
+
+// ── Text generation ───────────────────────────────────────────────────────────
+function generateDrillText() {
+  const profWords = PROF_WORDS[state.profession] || PROF_WORDS.general;
+  const focusKeys = state.selectedKeys;
+  const words = [];
+  const count = 22;
+
+  for (let i = 0; i < count; i++) {
+    if (focusKeys.length > 0 && i % 2 === 0) {
+      const fk = focusKeys[i % focusKeys.length].toLowerCase();
+      const pool = WORDS[fk] || profWords;
+      words.push(pool[Math.floor(Math.random() * pool.length)]);
+    } else {
+      words.push(profWords[Math.floor(Math.random() * profWords.length)]);
+    }
+  }
+  return words.join(' ');
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderText() {
+  const display = document.getElementById('text-display');
+  const text = state.currentText;
+  const typed = state.typed;
+  const fkSet = new Set(state.selectedKeys.map(k => k.toLowerCase()));
+  let html = '';
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] === ' ' ? '&nbsp;' : text[i];
+    const isFocus = fkSet.has(text[i].toLowerCase());
+    let cls = 'char';
+    if (isFocus) cls += ' focus-key';
+    if (i === typed.length) cls += ' cursor';
+    else if (i < typed.length) cls += typed[i] === text[i] ? ' correct' : ' incorrect';
+    html += `<span class="${cls}">${ch}</span>`;
+  }
+  display.innerHTML = html;
+  const cursor = display.querySelector('.cursor');
+  if (cursor) cursor.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ── Drill ─────────────────────────────────────────────────────────────────────
+function newDrill() {
+  state.currentText = generateDrillText();
+  state.typed = '';
+  state.errors = 0;
+  state.totalKeystrokes = 0;
+  state.currentStreak = 0;
+  state.bestStreak = 0;
+  state.finished = false;
+
+  document.getElementById('hidden-input').value = '';
+  renderText();
+  updateStats();
+  updateProgress(0);
+  setDrillTags();
+  focusInput();
+}
+
+function setDrillTags() {
+  const tags = document.getElementById('drill-tags');
+  tags.innerHTML = '';
+  if (state.kb) tags.innerHTML += `<span class="drill-tag">${state.kb}</span>`;
+  if (state.profession && state.profession !== 'general') tags.innerHTML += `<span class="drill-tag blue">${state.profession}</span>`;
+  if (state.selectedKeys.length > 0) tags.innerHTML += `<span class="drill-tag green">focus: ${state.selectedKeys.slice(0,3).join(' ')}${state.selectedKeys.length > 3 ? ' +' + (state.selectedKeys.length-3) : ''}</span>`;
+  document.getElementById('drill-label').textContent = state.selectedKeys.length > 0 ? 'targeted drill — highlighted keys are your focus' : 'general drill — type carefully';
+}
+
+function handleInput() {
+  if (state.finished) return;
+  const value = document.getElementById('hidden-input').value;
+
+  if (value.length < state.typed.length) {
+    state.typed = value;
+    renderText();
+    updateProgress(value.length / state.currentText.length * 100);
+    return;
+  }
+
+  const newChar = value[value.length - 1];
+  const expected = state.currentText[state.typed.length];
+  state.totalKeystrokes++;
+
+  if (newChar !== expected) {
+    state.errors++;
+    state.currentStreak = 0;
+    const ek = expected === ' ' ? 'space' : expected.toLowerCase();
+    state.errorMap[ek] = (state.errorMap[ek] || 0) + 1;
+    document.getElementById('typing-card').classList.add('shake');
+    setTimeout(() => document.getElementById('typing-card').classList.remove('shake'), 200);
+  } else {
+    state.currentStreak++;
+    if (state.currentStreak > state.bestStreak) state.bestStreak = state.currentStreak;
+  }
+
+  state.typed = value;
+
+  if (state.typed.length >= state.currentText.length) {
+    finishDrill();
+    return;
+  }
+
+  renderText();
+  updateProgress(state.typed.length / state.currentText.length * 100);
+  updateStats();
+}
+
+function finishDrill() {
+  state.finished = true;
+  state.drillsDone++;
+  document.getElementById('drills-val').textContent = state.drillsDone;
+  updatePhaseBar();
+  showResults();
+  buildKeyGrid();
+}
+
+function updateStats() {
+  const acc = state.totalKeystrokes === 0 ? '—' : Math.round(((state.totalKeystrokes - state.errors) / state.totalKeystrokes) * 100) + '%';
+  const accEl = document.getElementById('acc-val');
+  accEl.textContent = acc;
+  const n = parseInt(acc);
+  accEl.className = 'stat-card-value' + (isNaN(n) ? '' : n >= 95 ? ' good' : n >= 80 ? ' warn' : ' bad');
+  document.getElementById('streak-val').textContent = state.currentStreak;
+  document.getElementById('errors-val').textContent = state.errors;
+}
+
+function updateProgress(pct) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = Math.round(pct) + '%';
+}
+
+function updatePhaseBar() {
+  for (let i = 1; i <= 5; i++) {
+    const p = document.getElementById('p' + i);
+    const pos = state.drillsDone % 5;
+    if (i <= pos) p.className = 'phase done';
+    else if (i === pos + 1) p.className = 'phase active';
+    else p.className = 'phase';
+  }
+}
+
+// ── Results ───────────────────────────────────────────────────────────────────
+function showResults() {
+  const acc = state.totalKeystrokes === 0 ? 0 : Math.round(((state.totalKeystrokes - state.errors) / state.totalKeystrokes) * 100);
+  const grade = acc >= 98 ? 'S' : acc >= 95 ? 'A' : acc >= 88 ? 'B' : acc >= 75 ? 'C' : 'D';
+
+  document.getElementById('r-grade').textContent = grade;
+  document.getElementById('r-grade').className = 'results-grade' + (grade === 'S' ? ' s' : '');
+  document.getElementById('r-acc').textContent = acc + '%';
+  document.getElementById('r-errors').textContent = state.errors;
+  document.getElementById('r-streak').textContent = state.bestStreak;
+  document.getElementById('r-chars').textContent = state.typed.length;
+
+  // Context
+  let ctx = state.kb ? state.kb + ' keyboard' : 'general drill';
+  if (state.transition) ctx += ' — ' + state.transition.replace('-', ' → ');
+  document.getElementById('r-context').textContent = ctx;
+
+  // Worst keys
+  const sorted = Object.entries(state.errorMap).sort((a,b) => b[1]-a[1]).slice(0,6);
+  const wr = document.getElementById('worst-row');
+  wr.innerHTML = '';
+  sorted.forEach(([key, count]) => {
+    const b = document.createElement('div');
+    b.className = 'worst-badge';
+    b.textContent = key + ' ×' + count;
+    wr.appendChild(b);
+  });
+
+  // Advice — transition-specific if available
+  let advice = '';
+  if (state.transition && TRANS_ADVICE[state.transition]) {
+    advice = '<strong>Transition note:</strong> ' + TRANS_ADVICE[state.transition];
+  } else if (acc >= 95) {
+    advice = '<strong>Strong run.</strong> Muscle memory is adapting well. Keep drilling to lock it in permanently.';
+  } else if (acc >= 80) {
+    advice = '<strong>Progress visible.</strong> Slow down another 10%. Focus specifically on the error keys shown above.';
+  } else {
+    advice = '<strong>Early adaptation phase.</strong> This is normal. Slow to 50% of normal speed. Accuracy before speed — always.';
+  }
+  document.getElementById('r-advice').innerHTML = advice;
+
+  document.getElementById('results-overlay').classList.add('visible');
+}
+
+function nextDrillFromResults() { closeResults(); newDrill(); }
+function closeResults() { document.getElementById('results-overlay').classList.remove('visible'); }
+
+// ── Heatmap ───────────────────────────────────────────────────────────────────
+function updateHeatmap() {
+  const vis = document.getElementById('keyboard-visual');
+  vis.innerHTML = '';
+  KEYBOARD_ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(key => {
+      const el = document.createElement('div');
+      el.className = 'kb-key' + (KEY_WIDTHS[key] ? ' ' + KEY_WIDTHS[key] : '');
+      el.textContent = key;
+      const lk = key === '⎵' ? 'space' : key.toLowerCase();
+      const errs = state.errorMap[lk] || 0;
+      el.dataset.level = errs === 0 ? 0 : errs <= 2 ? 1 : errs <= 5 ? 2 : 3;
+      const dot = document.createElement('div');
+      dot.className = 'error-dot';
+      el.appendChild(dot);
+      rowEl.appendChild(el);
+    });
+    vis.appendChild(rowEl);
+  });
+
+  const total = Object.values(state.errorMap).reduce((a,b) => a+b, 0);
+  const sorted = Object.entries(state.errorMap).sort((a,b) => b[1]-a[1]);
+  const worst = sorted[0] ? sorted[0][0] : '—';
+  const tk = state.totalKeystrokes;
+  const te = state.errors;
+  const acc = tk === 0 ? '—' : Math.round(((tk-te)/tk)*100) + '%';
+
+  document.getElementById('h-total').textContent = total;
+  document.getElementById('h-worst').textContent = worst;
+  document.getElementById('h-drills').textContent = state.drillsDone;
+  document.getElementById('h-acc').textContent = acc;
+}
+
+function clearHeatmap() { state.errorMap = {}; updateHeatmap(); buildKeyGrid(); }
+
+// ── Guide filter ──────────────────────────────────────────────────────────────
+function filterProfGuide(el) {
+  document.querySelectorAll('.prof-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const filter = el.dataset.profguide;
+  document.querySelectorAll('.profession-guide').forEach(g => {
+    g.classList.toggle('active', filter === 'all' || g.dataset.profguide === filter);
+  });
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetAll() {
+  state.typed = '';
+  state.errors = 0;
+  state.totalKeystrokes = 0;
+  state.currentStreak = 0;
+  state.bestStreak = 0;
+  document.getElementById('hidden-input').value = '';
+  renderText();
+  updateStats();
+  updateProgress(0);
+  focusInput();
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Tab') { e.preventDefault(); newDrill(); }
+  if (e.key === 'Escape') { closeResults(); resetAll(); }
+});
+
+document.getElementById('hidden-input').addEventListener('input', handleInput);
+function focusInput() { document.getElementById('hidden-input').focus(); }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildKeyGrid();
+</script>
+</body>
+</html>
