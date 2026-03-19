@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TypeCraft</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f0e;
+    --bg2: #111413;
+    --bg3: #161918;
+    --border: #1e2422;
+    --text: #c8d4c8;
+    --text-dim: #3d4d3d;
+    --text-muted: #5a6e5a;
+    --green: #4ade80;
+    --green-dim: #1a3d1a;
+    --red: #f87171;
+    --red-dim: #3d1a1a;
+    --amber: #fbbf24;
+    --cursor: #4ade80;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Fragment Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    overflow-x: hidden;
+  }
+
+  /* Subtle scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 860px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    color: var(--green);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .logo span {
+    color: var(--text-muted);
+  }
+
+  .tagline {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Mode selector */
+  .mode-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.5rem 1.2rem;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+
+  .mode-btn:last-child { border-right: none; }
+
+  .mode-btn:hover { color: var(--text); background: var(--bg3); }
+
+  .mode-btn.active {
+    color: var(--green);
+    background: var(--bg3);
+  }
+
+  .mode-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--green);
+  }
+
+  /* Settings row */
+  .settings-row {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .setting-group {
+    display: flex;
+    gap: 0;
+    align-items: center;
+  }
+
+  .setting-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 0.75rem;
+  }
+
+  .setting-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-right: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+
+  .setting-btn:last-child { border-right: 1px solid var(--border); border-radius: 0 3px 3px 0; }
+  .setting-btn:first-of-type { border-radius: 3px 0 0 3px; }
+  .setting-btn:hover { color: var(--text); background: var(--bg3); }
+  .setting-btn.active { color: var(--green); background: var(--bg3); border-color: var(--green-dim); }
+
+  /* Custom text area */
+  .custom-text-area {
+    display: none;
+    margin-bottom: 2rem;
+  }
+
+  .custom-text-area.visible { display: block; }
+
+  .custom-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .custom-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .custom-input:focus { border-color: var(--text-muted); }
+
+  .custom-apply {
+    margin-top: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .custom-apply:hover { color: var(--green); border-color: var(--green); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 2.5rem;
+    margin-bottom: 1.5rem;
+    align-items: baseline;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--text);
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .stat-value.highlight { color: var(--green); }
+
+  .stat-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 2rem;
+    background: var(--border);
+    align-self: center;
+  }
+
+  /* Progress bar */
+  .progress-track {
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    margin-bottom: 2rem;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 1px;
+    transition: width 0.1s;
+    width: 0%;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  /* Typing area */
+  .typing-area {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    cursor: text;
+    min-height: 120px;
+    transition: border-color 0.2s;
+  }
+
+  .typing-area:focus-within { border-color: var(--text-dim); }
+
+  .typing-area.error-flash {
+    animation: errorFlash 0.15s ease;
+  }
+
+  @keyframes errorFlash {
+    0% { border-color: var(--border); }
+    50% { border-color: var(--red); }
+    100% { border-color: var(--border); }
+  }
+
+  #text-display {
+    font-family: var(--font-mono);
+    font-size: 1.05rem;
+    line-height: 1.9;
+    letter-spacing: 0.02em;
+    word-wrap: break-word;
+    user-select: none;
+    position: relative;
+  }
+
+  .char {
+    position: relative;
+    transition: color 0.05s;
+    color: var(--text-dim);
+  }
+
+  .char.correct { color: var(--text); }
+  .char.incorrect { color: var(--red); background: var(--red-dim); border-radius: 2px; }
+
+  .char.cursor::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    bottom: 0.1em;
+    width: 2px;
+    background: var(--cursor);
+    animation: blink 1s step-end infinite;
+    box-shadow: 0 0 6px var(--cursor);
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* Space character visibility */
+  .char.incorrect[data-char=" "] {
+    background: var(--red-dim);
+    border-radius: 2px;
+  }
+
+  #hidden-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Hint */
+  .hint {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    opacity: 0.7;
+    margin-bottom: 2rem;
+  }
+
+  /* Results overlay */
+  .results-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 15, 14, 0.92);
+    backdrop-filter: blur(8px);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .results-overlay.visible {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .results-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3rem 4rem;
+    text-align: center;
+    max-width: 520px;
+    width: 90%;
+  }
+
+  .results-title {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 2.5rem;
+  }
+
+  .results-wpm {
+    font-family: var(--font-display);
+    font-size: 5rem;
+    color: var(--green);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 0 30px rgba(74, 222, 128, 0.3);
+  }
+
+  .results-wpm-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 2.5rem;
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+  }
+
+  .result-stat {
+    padding: 1rem;
+    border-right: 1px solid var(--border);
+  }
+
+  .result-stat:last-child { border-right: none; }
+
+  .result-stat-value {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--text);
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .result-stat-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .results-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .btn-restart {
+    background: var(--green);
+    border: none;
+    border-radius: 4px;
+    color: var(--bg);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.7rem 2rem;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .btn-restart:hover {
+    background: #6ee7a0;
+    transform: translateY(-1px);
+  }
+
+  .btn-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.7rem 1.5rem;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .btn-close:hover { color: var(--text); border-color: var(--text-muted); }
+
+  /* Footer */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .shortcuts {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .shortcut {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .shortcut kbd {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    margin-right: 0.3rem;
+  }
+
+  .version {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    letter-spacing: 0.1em;
+  }
+
+  /* Timer warning */
+  .stat-value.warning { color: var(--amber); }
+  .stat-value.danger { color: var(--red); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header class="header">
+    <div class="logo">Type<span>craft</span></div>
+    <div class="tagline">terminal typing trainer</div>
+  </header>
+
+  <div class="mode-bar">
+    <button class="mode-btn active" data-mode="words">Words</button>
+    <button class="mode-btn" data-mode="sentences">Sentences</button>
+    <button class="mode-btn" data-mode="code">Code</button>
+    <button class="mode-btn" data-mode="custom">Custom</button>
+  </div>
+
+  <div class="settings-row">
+    <div class="setting-group">
+      <span class="setting-label">time</span>
+      <button class="setting-btn active" data-setting="time" data-value="15">15s</button>
+      <button class="setting-btn" data-setting="time" data-value="30">30s</button>
+      <button class="setting-btn" data-setting="time" data-value="60">60s</button>
+      <button class="setting-btn" data-setting="time" data-value="120">120s</button>
+    </div>
+    <div class="setting-group">
+      <span class="setting-label">difficulty</span>
+      <button class="setting-btn active" data-setting="diff" data-value="easy">easy</button>
+      <button class="setting-btn" data-setting="diff" data-value="medium">medium</button>
+      <button class="setting-btn" data-setting="diff" data-value="hard">hard</button>
+    </div>
+  </div>
+
+  <div class="custom-text-area" id="custom-area">
+    <label class="custom-label">paste your text</label>
+    <textarea class="custom-input" id="custom-input" placeholder="paste any text here — lecture notes, code snippets, anything you want to practice typing..."></textarea>
+    <button class="custom-apply" id="custom-apply">apply text →</button>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value" id="wpm-display">0</div>
+      <div class="stat-label">wpm</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <div class="stat-value" id="acc-display">100</div>
+      <div class="stat-label">acc %</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <div class="stat-value highlight" id="timer-display">15</div>
+      <div class="stat-label">sec</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <div class="stat-value" id="errors-display">0</div>
+      <div class="stat-label">errors</div>
+    </div>
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <div class="typing-area" id="typing-area" onclick="focusInput()">
+    <div id="text-display"></div>
+    <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  </div>
+
+  <div class="hint">click to focus · start typing to begin</div>
+
+  <footer class="footer">
+    <div class="shortcuts">
+      <span class="shortcut"><kbd>tab</kbd> restart</span>
+      <span class="shortcut"><kbd>esc</kbd> reset</span>
+    </div>
+    <div class="version">v1.0</div>
+  </footer>
+</div>
+
+<!-- Results Overlay -->
+<div class="results-overlay" id="results-overlay">
+  <div class="results-card">
+    <div class="results-title">// test complete</div>
+    <div class="results-wpm" id="result-wpm">0</div>
+    <div class="results-wpm-label">words per minute</div>
+    <div class="results-grid">
+      <div class="result-stat">
+        <span class="result-stat-value" id="result-acc">0%</span>
+        <span class="result-stat-label">accuracy</span>
+      </div>
+      <div class="result-stat">
+        <span class="result-stat-value" id="result-errors">0</span>
+        <span class="result-stat-label">errors</span>
+      </div>
+      <div class="result-stat">
+        <span class="result-stat-value" id="result-chars">0</span>
+        <span class="result-stat-label">chars</span>
+      </div>
+    </div>
+    <div class="results-actions">
+      <button class="btn-restart" onclick="restart()">restart</button>
+      <button class="btn-close" onclick="closeResults()">close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Word banks ──────────────────────────────────────────────────────────────
+const WORD_BANKS = {
+  easy: ['the','be','to','of','and','a','in','that','have','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','people','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us'],
+  medium: ['algorithm','function','variable','system','process','network','protocol','memory','buffer','pointer','stack','queue','thread','signal','debug','kernel','driver','sensor','module','circuit','register','interrupt','compiler','runtime','binary','syntax','library','interface','package','method','object','class','struct','array','string','integer','boolean','recursive','iterate','loop','condition','parameter','argument','return','import','export','define','declare','initialize','allocate','execute','compile','deploy','configure','install','update','request','response','server','client','socket','packet','encrypt','decrypt','secure','authorize','validate'],
+  hard: ['microcontroller','asynchronous','synchronization','implementation','initialization','configuration','authentication','encapsulation','polymorphism','inheritance','abstraction','serialization','deserialization','concurrency','multithreading','parallelization','optimization','virtualization','containerization','orchestration','infrastructure','cryptographic','authentication','authorization','vulnerability','exploitation','mitigation','instrumentation','benchmarking','profiling','debugging','refactoring','documentation','specification','architecture','middleware','framework','dependency','repository','continuous','integration','deployment','regression','interpolation','extrapolation']
+};
+
+const SENTENCES = {
+  easy: [
+    'the quick brown fox jumps over the lazy dog',
+    'type each word carefully and build your speed over time',
+    'practice makes perfect when learning to type faster',
+    'every great programmer started by typing one key at a time',
+    'consistency is the key to improving your typing speed',
+    'focus on accuracy first then work on building your speed'
+  ],
+  medium: [
+    'embedded systems require precise timing and careful memory management',
+    'a microcontroller reads sensor data and sends it over UART to the host',
+    'the Linux kernel manages hardware resources and process scheduling',
+    'writing clean code today saves debugging hours tomorrow',
+    'communication protocols like SPI and I2C connect chips on a board',
+    'version control with git allows you to track every change in your codebase'
+  ],
+  hard: [
+    'the interrupt service routine must execute within strict real-time constraints to prevent system failure',
+    'configuring Yocto Project build system requires understanding layer architecture and recipe dependencies',
+    'implementing a custom Linux device driver involves kernel module initialization and file operations registration',
+    'the FreeRTOS scheduler uses priority-based preemption to manage concurrent task execution on microcontrollers',
+    'hardware abstraction layers decouple application logic from platform-specific register manipulation code'
+  ]
+};
+
+const CODE_SNIPPETS = [
+  'int main() { return 0; }',
+  'void setup() { Serial.begin(9600); }',
+  'if (status == OK) { process(); } else { error(); }',
+  'for (int i = 0; i < len; i++) { buf[i] = 0; }',
+  'uint8_t data = SPI.transfer(cmd);',
+  'while (!(UCSR0A & (1 << UDRE0)));',
+  'DDRD |= (1 << PD7);',
+  'gpio_set_value(LED_PIN, HIGH);',
+  'struct device *dev = platform_get_drvdata(pdev);',
+  'devm_request_irq(dev, irq, handler, 0, "mydrv", dev);'
+];
+
+// ── State ───────────────────────────────────────────────────────────────────
+let state = {
+  mode: 'words',
+  difficulty: 'easy',
+  timeLimit: 15,
+  timeLeft: 15,
+  started: false,
+  finished: false,
+  currentText: '',
+  typed: '',
+  errors: 0,
+  totalKeystrokes: 0,
+  timer: null,
+  wpmTimer: null,
+  customText: ''
+};
+
+// ── Text generation ─────────────────────────────────────────────────────────
+function generateText() {
+  if (state.mode === 'custom' && state.customText.trim()) {
+    return state.customText.trim().slice(0, 300);
+  }
+  if (state.mode === 'sentences') {
+    const pool = SENTENCES[state.difficulty] || SENTENCES.easy;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  if (state.mode === 'code') {
+    const shuffled = [...CODE_SNIPPETS].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3).join('  ');
+  }
+  // words mode
+  const pool = WORD_BANKS[state.difficulty] || WORD_BANKS.easy;
+  const count = 40;
+  const words = [];
+  for (let i = 0; i < count; i++) {
+    words.push(pool[Math.floor(Math.random() * pool.length)]);
+  }
+  return words.join(' ');
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function renderText() {
+  const display = document.getElementById('text-display');
+  const text = state.currentText;
+  const typed = state.typed;
+
+  let html = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] === ' ' ? '&nbsp;' : text[i];
+    const cls = i === typed.length
+      ? 'char cursor'
+      : i < typed.length
+        ? typed[i] === text[i] ? 'char correct' : 'char incorrect'
+        : 'char';
+    html += `<span class="${cls}" data-char="${text[i]}">${ch}</span>`;
+  }
+  display.innerHTML = html;
+
+  // Scroll cursor into view
+  const cursor = display.querySelector('.cursor');
+  if (cursor) {
+    cursor.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// ── WPM calculation ──────────────────────────────────────────────────────────
+function calcWPM() {
+  const elapsed = (state.timeLimit - state.timeLeft) / 60;
+  if (elapsed <= 0) return 0;
+  const correctChars = [...state.typed].filter((ch, i) => ch === state.currentText[i]).length;
+  return Math.round((correctChars / 5) / elapsed);
+}
+
+function calcAccuracy() {
+  if (state.totalKeystrokes === 0) return 100;
+  const correct = state.totalKeystrokes - state.errors;
+  return Math.max(0, Math.round((correct / state.totalKeystrokes) * 100));
+}
+
+// ── Timer ────────────────────────────────────────────────────────────────────
+function startTimer() {
+  if (state.timer) return;
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimerDisplay();
+    updateWPMDisplay();
+    if (state.timeLeft <= 0) endTest();
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-display');
+  el.textContent = state.timeLeft;
+  el.className = 'stat-value highlight';
+  if (state.timeLeft <= 5) el.className = 'stat-value danger';
+  else if (state.timeLeft <= 10) el.className = 'stat-value warning';
+}
+
+function updateWPMDisplay() {
+  document.getElementById('wpm-display').textContent = state.started ? calcWPM() : 0;
+  document.getElementById('acc-display').textContent = calcAccuracy();
+  document.getElementById('errors-display').textContent = state.errors;
+
+  // Progress bar
+  const progress = ((state.timeLimit - state.timeLeft) / state.timeLimit) * 100;
+  document.getElementById('progress-fill').style.width = progress + '%';
+}
+
+// ── End test ─────────────────────────────────────────────────────────────────
+function endTest() {
+  clearInterval(state.timer);
+  state.timer = null;
+  state.finished = true;
+
+  const wpm = calcWPM();
+  const acc = calcAccuracy();
+
+  document.getElementById('result-wpm').textContent = wpm;
+  document.getElementById('result-acc').textContent = acc + '%';
+  document.getElementById('result-errors').textContent = state.errors;
+  document.getElementById('result-chars').textContent = state.typed.length;
+
+  document.getElementById('results-overlay').classList.add('visible');
+}
+
+// ── Input handling ────────────────────────────────────────────────────────────
+function handleInput(e) {
+  if (state.finished) return;
+
+  const input = document.getElementById('hidden-input');
+  const value = input.value;
+
+  // Start timer on first keystroke
+  if (!state.started && value.length > 0) {
+    state.started = true;
+    startTimer();
+  }
+
+  // Handle backspace
+  if (value.length < state.typed.length) {
+    state.typed = value;
+    renderText();
+    updateWPMDisplay();
+    return;
+  }
+
+  const newChar = value[value.length - 1];
+  const expectedChar = state.currentText[state.typed.length];
+
+  state.totalKeystrokes++;
+  if (newChar !== expectedChar) {
+    state.errors++;
+    document.getElementById('typing-area').classList.add('error-flash');
+    setTimeout(() => document.getElementById('typing-area').classList.remove('error-flash'), 150);
+  }
+
+  state.typed = value;
+
+  // Check completion
+  if (state.typed.length >= state.currentText.length) {
+    endTest();
+    return;
+  }
+
+  renderText();
+  updateWPMDisplay();
+}
+
+function focusInput() {
+  document.getElementById('hidden-input').focus();
+}
+
+// ── Restart / Reset ───────────────────────────────────────────────────────────
+function restart() {
+  clearInterval(state.timer);
+  state.timer = null;
+  state.started = false;
+  state.finished = false;
+  state.typed = '';
+  state.errors = 0;
+  state.totalKeystrokes = 0;
+  state.timeLeft = state.timeLimit;
+  state.currentText = generateText();
+
+  document.getElementById('hidden-input').value = '';
+  document.getElementById('wpm-display').textContent = '0';
+  document.getElementById('acc-display').textContent = '100';
+  document.getElementById('errors-display').textContent = '0';
+  document.getElementById('timer-display').textContent = state.timeLeft;
+  document.getElementById('timer-display').className = 'stat-value highlight';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('results-overlay').classList.remove('visible');
+
+  renderText();
+  focusInput();
+}
+
+function closeResults() {
+  document.getElementById('results-overlay').classList.remove('visible');
+}
+
+// ── Mode buttons ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+
+    const customArea = document.getElementById('custom-area');
+    if (state.mode === 'custom') {
+      customArea.classList.add('visible');
+    } else {
+      customArea.classList.remove('visible');
+      restart();
+    }
+  });
+});
+
+// ── Setting buttons ───────────────────────────────────────────────────────────
+document.querySelectorAll('.setting-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const setting = btn.dataset.setting;
+    document.querySelectorAll(`.setting-btn[data-setting="${setting}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (setting === 'time') {
+      state.timeLimit = parseInt(btn.dataset.value);
+    } else if (setting === 'diff') {
+      state.difficulty = btn.dataset.value;
+    }
+    restart();
+  });
+});
+
+// ── Custom text ───────────────────────────────────────────────────────────────
+document.getElementById('custom-apply').addEventListener('click', () => {
+  state.customText = document.getElementById('custom-input').value;
+  if (state.customText.trim()) restart();
+});
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    restart();
+  }
+  if (e.key === 'Escape') {
+    closeResults();
+    restart();
+  }
+});
+
+document.getElementById('hidden-input').addEventListener('input', handleInput);
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+state.currentText = generateText();
+renderText();
+focusInput();
+</script>
+</body>
+</html>
