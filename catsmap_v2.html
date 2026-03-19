@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CatsMap 🐱</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fdf8f0;
+    --cream2: #f5eedc;
+    --cream3: #ece3cc;
+    --ink: #2d2010;
+    --ink2: #5c4020;
+    --ink3: #9c7850;
+    --orange: #e8621a;
+    --orange2: #f07830;
+    --green: #3a9a50;
+    --red: #d84040;
+    --blue: #3878c8;
+    --purple: #8050b8;
+    --border: #ddd0b0;
+    --font-title: 'Fredoka One', cursive;
+    --font-body: 'Nunito', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SVG CAT DEFINITIONS ─────────────────────── */
+
+  /* ── BACKGROUND ──────────────────────────────── */
+  .bg-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .bg-cat-svg {
+    position: absolute;
+    opacity: 0.08;
+    animation: bgRise linear infinite;
+  }
+
+  @keyframes bgRise {
+    0%   { transform: translateY(110vh) rotate(-5deg); opacity: 0; }
+    5%   { opacity: 0.08; }
+    95%  { opacity: 0.08; }
+    100% { transform: translateY(-150px) rotate(5deg); opacity: 0; }
+  }
+
+  .wander-cat {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.55;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
+  }
+
+  /* ── LAYOUT ──────────────────────────────────── */
+  .app {
+    position: relative;
+    z-index: 2;
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 5rem;
+  }
+
+  /* ── HEADER ──────────────────────────────────── */
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+    padding: 0 80px;
+  }
+
+  .logo {
+    font-family: var(--font-title);
+    font-size: 3rem;
+    color: var(--orange);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-shadow: 3px 3px 0 #c04800;
+  }
+
+  .tagline {
+    font-size: 0.82rem;
+    color: var(--ink3);
+    font-weight: 600;
+    margin-top: 0.3rem;
+    letter-spacing: 0.04em;
+  }
+
+  .header-cat-left {
+    position: absolute;
+    left: 0;
+    top: 0;
+    animation: sideBounce 2.2s ease-in-out infinite;
+  }
+
+  .header-cat-right {
+    position: absolute;
+    right: 0;
+    top: 0;
+    animation: sideBounce 2.2s ease-in-out infinite 0.4s;
+  }
+
+  @keyframes sideBounce {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-8px) rotate(3deg); }
+  }
+
+  /* ── TABS ────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    background: white;
+    border: 2.5px solid var(--border);
+    border-radius: 50px;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--ink3);
+    padding: 0.5rem 1.4rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab:hover { border-color: var(--orange); color: var(--orange); transform: translateY(-2px); }
+  .tab.active { background: var(--orange); border-color: var(--orange); color: white; box-shadow: 0 4px 12px rgba(232,98,26,0.35); transform: translateY(-2px); }
+
+  /* ── PANELS ──────────────────────────────────── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── STATS ROW ───────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: white;
+    border: 2.5px solid var(--border);
+    border-radius: 16px;
+    padding: 0.75rem;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-cat { display: block; margin: 0 auto 4px; }
+  .stat-value { font-family: var(--font-title); font-size: 1.5rem; color: var(--ink); line-height: 1; }
+  .stat-value.good { color: var(--green); }
+  .stat-value.warn { color: #d08000; }
+  .stat-value.bad { color: var(--red); }
+  .stat-label { font-size: 0.58rem; color: var(--ink3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+  /* ── PROGRESS ────────────────────────────────── */
+  .progress-wrap {
+    background: white;
+    border: 2.5px solid var(--border);
+    border-radius: 50px;
+    height: 14px;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--orange), #f8b840);
+    border-radius: 50px;
+    transition: width 0.15s;
+  }
+
+  /* ── KEY SECTION ─────────────────────────────── */
+  .key-section {
+    background: white;
+    border: 2.5px solid var(--border);
+    border-radius: 20px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .key-section-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.7rem;
+  }
+
+  .key-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+  .key-chip {
+    background: var(--cream2);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.28rem 0.6rem;
+    cursor: pointer;
+    color: var(--ink2);
+    transition: all 0.12s;
+    user-select: none;
+    position: relative;
+  }
+
+  .key-chip:hover { border-color: var(--orange); transform: translateY(-1px); }
+  .key-chip.selected { background: var(--orange); border-color: var(--orange); color: white; }
+  .key-chip.blocked { background: #fff0e0; border-color: #e08000; color: #803000; }
+  .key-chip.blocked .cat-icon { display: inline-block; }
+
+  /* ── TYPING CARD ─────────────────────────────── */
+  .typing-card {
+    background: white;
+    border: 3px solid var(--border);
+    border-radius: 24px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1rem;
+    cursor: text;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .typing-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--orange), #f8b840, var(--orange));
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  @keyframes shimmer { 0% { background-position: 0% 0%; } 100% { background-position: 200% 0%; } }
+
+  .typing-card:focus-within { border-color: var(--orange); box-shadow: 0 4px 24px rgba(232,98,26,0.18); }
+  .typing-card.shake { animation: shake 0.25s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.1rem; }
+  .drill-info { font-size: 0.68rem; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .drill-chip { padding: 0.18rem 0.55rem; border-radius: 20px; font-size: 0.6rem; font-weight: 700; background: #fff0e0; color: var(--orange); }
+
+  #text-display {
+    font-family: 'Courier New', monospace;
+    font-size: 1.08rem;
+    line-height: 2;
+    word-wrap: break-word;
+    user-select: none;
+  }
+
+  .char { color: #c8b898; position: relative; transition: color 0.05s; }
+  .char.correct { color: var(--ink2); }
+  .char.incorrect { color: var(--red); background: #fce8e8; border-radius: 3px; }
+  .char.cursor::before { content: ''; position: absolute; left: 0; top: 0.1em; bottom: 0.1em; width: 2px; background: var(--orange); border-radius: 1px; animation: blink 0.9s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .char.focus-key { background: #fff8e0; border-radius: 2px; }
+  .char.focus-key.correct { background: #e8f5e0; color: var(--green); }
+  .char.focus-key.incorrect { background: #fce8e8; color: var(--red); }
+
+  #hidden-input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+
+  /* ── BUTTONS ─────────────────────────────────── */
+  .action-bar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; }
+  .btn { border-radius: 50px; font-family: var(--font-body); font-weight: 800; cursor: pointer; transition: all 0.2s; border: none; font-size: 0.82rem; padding: 0.6rem 1.5rem; }
+  .btn-primary { background: var(--orange); color: white; box-shadow: 0 4px 12px rgba(232,98,26,0.35); }
+  .btn-primary:hover { background: var(--orange2); transform: translateY(-2px); }
+  .btn-secondary { background: white; color: var(--ink3); border: 2.5px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--orange); color: var(--orange); transform: translateY(-2px); }
+  .btn-danger { background: var(--red); color: white; box-shadow: 0 4px 12px rgba(216,64,64,0.3); }
+  .btn-danger:hover { background: #c03030; transform: translateY(-2px); }
+  .shortcut-hint { font-size: 0.6rem; color: var(--ink3); font-weight: 600; margin-left: auto; }
+  .shortcut-hint kbd { background: var(--cream2); border: 1.5px solid var(--border); border-radius: 5px; padding: 0.1rem 0.4rem; font-family: monospace; font-size: 0.6rem; }
+
+  /* ── CAT ATTACK ──────────────────────────────── */
+  .attack-banner {
+    background: linear-gradient(135deg, #e8621a, #d04000);
+    border-radius: 20px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    box-shadow: 0 4px 16px rgba(232,98,26,0.4);
+  }
+
+  .attack-title { font-family: var(--font-title); font-size: 1.3rem; }
+  .attack-sub { font-size: 0.7rem; opacity: 0.9; font-weight: 600; margin-top: 0.1rem; }
+
+  .cat-meter {
+    background: white;
+    border: 2.5px solid var(--border);
+    border-radius: 16px;
+    padding: 0.9rem 1.25rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .cat-meter-label { font-size: 0.68rem; font-weight: 800; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  .cat-slots { display: flex; gap: 6px; flex: 1; align-items: center; }
+  .cat-slot { width: 36px; height: 36px; border-radius: 10px; background: var(--cream2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.3s; overflow: hidden; }
+  .cat-slot.occupied { background: #fff0e0; border-color: #e08000; animation: catLand 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes catLand { 0%{transform:translateY(-20px) scale(0.5);opacity:0} 60%{transform:translateY(3px) scale(1.1)} 100%{transform:translateY(0) scale(1);opacity:1} }
+
+  .attack-timer { font-family: var(--font-title); font-size: 1.8rem; color: var(--orange); min-width: 4rem; text-align: center; }
+  .attack-timer.warn { color: var(--red); animation: timerPulse 0.5s ease-in-out infinite; }
+  @keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
+  .lives { display: flex; gap: 4px; font-size: 1.2rem; }
+
+  /* ── HEATMAP ─────────────────────────────────── */
+  .heatmap-wrap { background: white; border: 2.5px solid var(--border); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .heatmap-title { font-size: 0.7rem; font-weight: 800; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.25rem; }
+  .keyboard-visual { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+  .kb-row { display: flex; gap: 5px; }
+  .kb-key { width: 36px; height: 34px; border-radius: 8px; background: var(--cream2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 0.6rem; font-weight: 700; color: var(--ink2); position: relative; transition: all 0.3s; }
+  .kb-key.wide { width: 52px; }
+  .kb-key.wider { width: 62px; }
+  .kb-key.space { width: 200px; }
+  .kb-key[data-level="1"] { background: #fff8e0; border-color: #d8b000; color: #806000; }
+  .kb-key[data-level="2"] { background: #fff0d8; border-color: #d08000; color: #804000; }
+  .kb-key[data-level="3"] { background: #fce8e8; border-color: var(--red); color: var(--red); font-weight: 900; }
+
+  /* ── GUIDE ───────────────────────────────────── */
+  .guide-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
+  .guide-card { background: white; border: 2.5px solid var(--border); border-radius: 16px; padding: 1rem 1.1rem; transition: transform 0.2s; }
+  .guide-card:hover { transform: translateY(-2px); }
+  .guide-cat { display: block; margin-bottom: 0.5rem; }
+  .guide-card-title { font-size: 0.82rem; font-weight: 800; margin-bottom: 0.35rem; }
+  .guide-card-text { font-size: 0.78rem; line-height: 1.5; color: var(--ink2); }
+
+  /* ── RESULTS ─────────────────────────────────── */
+  .results-overlay { display: none; position: fixed; inset: 0; background: rgba(253,248,240,0.92); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; }
+  .results-overlay.visible { display: flex; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes popIn { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+
+  .results-card { background: white; border: 3px solid var(--border); border-radius: 28px; padding: 2rem 2.5rem; max-width: 460px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
+  .result-cat-svg { display: block; margin: 0 auto 0.75rem; animation: resultSpin 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes resultSpin { from{transform:rotate(-20deg) scale(0)} to{transform:rotate(0) scale(1)} }
+  .result-title { font-family: var(--font-title); font-size: 1.8rem; color: var(--orange); margin-bottom: 0.2rem; }
+  .result-sub { font-size: 0.78rem; color: var(--ink3); font-weight: 600; margin-bottom: 1.5rem; }
+  .result-grade { font-family: var(--font-title); font-size: 4rem; line-height: 1; margin-bottom: 0.5rem; }
+  .grade-s { color: #d89000; }
+  .grade-a { color: var(--green); }
+  .grade-b { color: var(--blue); }
+  .grade-c { color: #d08000; }
+  .grade-d { color: var(--red); }
+  .result-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.65rem; margin-bottom: 1.25rem; }
+  .r-item { background: var(--cream2); border-radius: 12px; padding: 0.8rem; }
+  .r-val { font-family: var(--font-title); font-size: 1.5rem; color: var(--ink); }
+  .r-lbl { font-size: 0.58rem; color: var(--ink3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .worst-row { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.1rem; }
+  .worst-badge { background: #fce8e8; color: var(--red); border: 2px solid #f0b0b0; border-radius: 8px; padding: 0.2rem 0.55rem; font-size: 0.72rem; font-weight: 800; }
+  .advice-box { background: var(--cream2); border-radius: 12px; padding: 0.85rem; font-size: 0.78rem; line-height: 1.5; color: var(--ink2); margin-bottom: 1.25rem; text-align: left; }
+  .result-actions { display: flex; gap: 0.65rem; justify-content: center; }
+
+  /* ── GAME OVER / WIN ─────────────────────────── */
+  .game-end { display: none; position: fixed; inset: 0; backdrop-filter: blur(8px); z-index: 110; align-items: center; justify-content: center; flex-direction: column; text-align: center; color: white; }
+  .game-end.visible { display: flex; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  #game-over { background: rgba(180,40,40,0.92); }
+  #win-screen { background: rgba(40,140,60,0.92); }
+  .end-cat { display: block; margin: 0 auto 1rem; animation: endWiggle 0.5s ease-in-out infinite; }
+  @keyframes endWiggle { 0%,100%{transform:rotate(-8deg) scale(1)} 50%{transform:rotate(8deg) scale(1.05)} }
+  .end-title { font-family: var(--font-title); font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 2px 2px 0 rgba(0,0,0,0.2); }
+  .end-sub { font-size: 0.9rem; opacity: 0.9; font-weight: 700; margin-bottom: 1.5rem; max-width: 360px; }
+  .end-stats { background: rgba(255,255,255,0.2); border-radius: 14px; padding: 0.9rem 2rem; margin-bottom: 1.75rem; font-size: 0.85rem; font-weight: 700; }
+
+  /* confetti cats */
+  .confetti-cat { position: fixed; pointer-events: none; z-index: 109; animation: confettiFall var(--dur,2.5s) ease-in forwards; }
+  @keyframes confettiFall { 0%{transform:translateY(-60px) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+
+  /* notification popups */
+  .cat-notif { position: fixed; right: 16px; background: white; border: 2.5px solid #e08000; border-radius: 14px; padding: 0.45rem 0.9rem; font-size: 0.78rem; font-weight: 700; z-index: 50; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; animation: notifIn 0.3s ease, notifOut 0.3s ease 1.6s forwards; }
+  @keyframes notifIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes notifOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(20px)} }
+</style>
+</head>
+<body>
+
+<div class="bg-layer" id="bg-layer"></div>
+<div id="float-cats"></div>
+
+<div class="app">
+
+  <header class="header">
+    <div class="header-cat-left" id="header-cat-left"></div>
+    <div class="logo">CatsMap</div>
+    <div class="tagline">the keyboard trainer that hired too many cats</div>
+    <div class="header-cat-right" id="header-cat-right"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="drill">🎯 Drill</button>
+    <button class="tab" data-tab="attack">⚔️ Cat Attack</button>
+    <button class="tab" data-tab="heatmap">🗺️ Heatmap</button>
+    <button class="tab" data-tab="guide">📖 Guide</button>
+  </div>
+
+  <!-- ══ DRILL ══ -->
+  <div class="panel active" id="panel-drill">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-cat" id="stat-cat-acc"></div>
+        <div class="stat-value" id="acc-val">—</div>
+        <div class="stat-label">accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-cat" id="stat-cat-streak"></div>
+        <div class="stat-value" id="streak-val">0</div>
+        <div class="stat-label">streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-cat" id="stat-cat-errors"></div>
+        <div class="stat-value" id="errors-val">0</div>
+        <div class="stat-label">errors</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-cat" id="stat-cat-drills"></div>
+        <div class="stat-value" id="drills-val">0</div>
+        <div class="stat-label">drills</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <div class="key-section">
+      <div class="key-section-title">Problem keys — tap your trouble spots</div>
+      <div class="key-grid" id="key-grid-drill"></div>
+    </div>
+
+    <div class="typing-card" id="typing-card" onclick="focusDrill()">
+      <div class="card-top">
+        <span class="drill-info" id="drill-info">click to focus, then start typing</span>
+        <span class="drill-chip" id="drill-chip" style="display:none"></span>
+      </div>
+      <div id="text-display"></div>
+      <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="newDrill()">New Drill</button>
+      <button class="btn btn-secondary" onclick="resetDrill()">Reset</button>
+      <div class="shortcut-hint"><kbd>Tab</kbd> new &nbsp;<kbd>Esc</kbd> reset</div>
+    </div>
+  </div>
+
+  <!-- ══ CAT ATTACK ══ -->
+  <div class="panel" id="panel-attack">
+    <div class="attack-banner">
+      <div>
+        <div class="attack-title">Cat Attack Mode</div>
+        <div class="attack-sub">Finish the passage before the cats take your keys!</div>
+      </div>
+      <div class="lives" id="attack-lives"></div>
+    </div>
+
+    <div class="cat-meter">
+      <div class="cat-meter-label">Cat invasion</div>
+      <div class="cat-slots" id="cat-slots"></div>
+      <div class="attack-timer" id="attack-timer">—</div>
+    </div>
+
+    <div class="key-section">
+      <div class="key-section-title">Keyboard — tap a blocked key to shoo the cat (costs 1 life)</div>
+      <div class="key-grid" id="key-grid-attack"></div>
+    </div>
+
+    <div class="typing-card" id="attack-card" onclick="focusAttack()">
+      <div class="card-top">
+        <span class="drill-info" id="attack-info">press Start Attack to begin</span>
+        <span class="drill-chip" id="blocked-chip" style="background:#ffe0c0;color:#c04000">0 keys blocked</span>
+      </div>
+      <div id="attack-display"></div>
+      <input type="text" id="attack-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="startAttack()">Start Attack!</button>
+      <button class="btn btn-danger" onclick="surrenderAttack()">Surrender</button>
+    </div>
+  </div>
+
+  <!-- ══ HEATMAP ══ -->
+  <div class="panel" id="panel-heatmap">
+    <div class="heatmap-wrap">
+      <div class="heatmap-title">Error heatmap — warmer = more errors on that key</div>
+      <div class="keyboard-visual" id="keyboard-visual"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-cat" id="h-cat1"></div><div class="stat-value" id="h-total">0</div><div class="stat-label">total errors</div></div>
+      <div class="stat-card"><div class="stat-cat" id="h-cat2"></div><div class="stat-value" id="h-worst">—</div><div class="stat-label">worst key</div></div>
+      <div class="stat-card"><div class="stat-cat" id="h-cat3"></div><div class="stat-value" id="h-drills">0</div><div class="stat-label">drills done</div></div>
+      <div class="stat-card"><div class="stat-cat" id="h-cat4"></div><div class="stat-value" id="h-acc">—</div><div class="stat-label">overall acc</div></div>
+    </div>
+    <div class="action-bar">
+      <button class="btn btn-secondary" onclick="clearHeatmap()">Clear Heatmap</button>
+    </div>
+  </div>
+
+  <!-- ══ GUIDE ══ -->
+  <div class="panel" id="panel-guide">
+    <div class="guide-cards">
+      <div class="guide-card">
+        <div class="guide-cat" id="guide-cat-1"></div>
+        <div class="guide-card-title">Slow down first</div>
+        <div class="guide-card-text">Aim for 50% of your normal speed. Your brain needs to build a new spatial map. Speed comes back naturally — errors trained in don't.</div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-cat" id="guide-cat-2"></div>
+        <div class="guide-card-title">Don't bottom out</div>
+        <div class="guide-card-text">Mechanical keys actuate before the floor. Train lighter keypresses — reduces fatigue and builds better habits from day one.</div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-cat" id="guide-cat-3"></div>
+        <div class="guide-card-title">Box the old keyboard</div>
+        <div class="guide-card-text">Switching back resets your learning curve instantly. 72 hours of full immersion is the minimum to start locking in new muscle memory.</div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-cat" id="guide-cat-4"></div>
+        <div class="guide-card-title">Remap problem keys</div>
+        <div class="guide-card-text">VIA and QMK let you move any key to where your fingers expect it. If you keep hitting the wrong spot, move the key — not your finger.</div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-cat" id="guide-cat-5"></div>
+        <div class="guide-card-title">Developer tips</div>
+        <div class="guide-card-text">Brackets, semicolons, and your layer keys are your highest-value targets. Rebuild those before worrying about typing speed.</div>
+      </div>
+      <div class="guide-card">
+        <div class="guide-cat" id="guide-cat-6"></div>
+        <div class="guide-card-title">10 min beats 1 hour</div>
+        <div class="guide-card-text">Short focused drills on your problem keys beat marathon frustrated sessions. Cat Attack mode is great for this — pressure without consequence.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Results -->
+<div class="results-overlay" id="results-overlay">
+  <div class="results-card">
+    <div id="result-cat-svg" class="result-cat-svg"></div>
+    <div class="result-title">Drill done!</div>
+    <div class="result-sub" id="result-sub">here's how you did</div>
+    <div class="result-grade" id="result-grade">B</div>
+    <div class="result-grid">
+      <div class="r-item"><div class="r-val" id="r-acc">0%</div><div class="r-lbl">accuracy</div></div>
+      <div class="r-item"><div class="r-val" id="r-errors">0</div><div class="r-lbl">errors</div></div>
+      <div class="r-item"><div class="r-val" id="r-streak">0</div><div class="r-lbl">best streak</div></div>
+      <div class="r-item"><div class="r-val" id="r-chars">0</div><div class="r-lbl">chars typed</div></div>
+    </div>
+    <div class="worst-row" id="worst-row"></div>
+    <div class="advice-box" id="advice-box"></div>
+    <div class="result-actions">
+      <button class="btn btn-primary" onclick="nextDrillFromResults()">Next Drill</button>
+      <button class="btn btn-secondary" onclick="closeResults()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Game over -->
+<div class="game-end" id="game-over">
+  <div class="end-cat" id="gameover-cat"></div>
+  <div class="end-title">The Cats Won!</div>
+  <div class="end-sub" id="gameover-sub">They've completely taken over your keyboard</div>
+  <div class="end-stats" id="gameover-stats"></div>
+  <button class="btn btn-secondary" onclick="restartAttack()" style="background:white;color:var(--ink)">Try Again</button>
+</div>
+
+<!-- Win -->
+<div class="game-end" id="win-screen">
+  <div class="end-cat" id="win-cat"></div>
+  <div class="end-title">You Beat the Cats!</div>
+  <div class="end-sub" id="win-sub">Amazing typing under pressure!</div>
+  <button class="btn btn-secondary" onclick="restartAttack()" style="background:white;color:var(--ink)">Play Again</button>
+</div>
+
+<script>
+// ── SVG CAT LIBRARY ───────────────────────────────────────────────────────────
+// Each cat is drawn with SVG paths. Colors, expressions, accessories vary.
+
+function catSVG(type, w, h) {
+  const cats = {
+    // Orange tabby — happy, content
+    orange: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="36" rx="18" ry="16" fill="#e8741a"/>
+      <ellipse cx="30" cy="36" rx="18" ry="16" fill="none" stroke="#c05810" stroke-width="0.8" opacity="0.5"/>
+      <ellipse cx="30" cy="24" rx="14" ry="13" fill="#e8741a"/>
+      <polygon points="18,14 14,4 22,10" fill="#e8741a" stroke="#c05810" stroke-width="0.5"/>
+      <polygon points="42,14 46,4 38,10" fill="#e8741a" stroke="#c05810" stroke-width="0.5"/>
+      <ellipse cx="22" cy="24" rx="5" ry="6" fill="#202020"/>
+      <ellipse cx="38" cy="24" rx="5" ry="6" fill="#202020"/>
+      <ellipse cx="22" cy="23" rx="2" ry="3" fill="white"/>
+      <ellipse cx="38" cy="23" rx="2" ry="3" fill="white"/>
+      <circle cx="23" cy="22" r="1" fill="white"/>
+      <circle cx="39" cy="22" r="1" fill="white"/>
+      <ellipse cx="30" cy="29" rx="3" ry="2" fill="#d06070"/>
+      <path d="M27 31 Q30 33 33 31" fill="none" stroke="#c05810" stroke-width="1" stroke-linecap="round"/>
+      <line x1="18" y1="27" x2="8" y2="25" stroke="#c05810" stroke-width="0.8"/>
+      <line x1="18" y1="29" x2="7" y2="29" stroke="#c05810" stroke-width="0.8"/>
+      <line x1="18" y1="31" x2="8" y2="33" stroke="#c05810" stroke-width="0.8"/>
+      <line x1="42" y1="27" x2="52" y2="25" stroke="#c05810" stroke-width="0.8"/>
+      <line x1="42" y1="29" x2="53" y2="29" stroke="#c05810" stroke-width="0.8"/>
+      <line x1="42" y1="31" x2="52" y2="33" stroke="#c05810" stroke-width="0.8"/>
+      <path d="M14 40 Q12 50 16 56" fill="none" stroke="#c05810" stroke-width="2" stroke-linecap="round"/>
+      <path d="M46 40 Q48 50 44 56" fill="none" stroke="#c05810" stroke-width="2" stroke-linecap="round"/>
+      <path d="M48 38 Q56 32 58 22 Q54 28 50 30" fill="#e8741a" stroke="#c05810" stroke-width="0.8"/>
+    </svg>`,
+
+    // Grey tuxedo — grumpy, sophisticated
+    tuxedo: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="36" rx="18" ry="16" fill="#505060"/>
+      <ellipse cx="30" cy="36" rx="10" ry="14" fill="#f0f0f0"/>
+      <ellipse cx="30" cy="24" rx="14" ry="13" fill="#505060"/>
+      <ellipse cx="30" cy="22" rx="8" ry="10" fill="#f0f0f0"/>
+      <polygon points="18,14 15,3 23,10" fill="#505060" stroke="#303040" stroke-width="0.5"/>
+      <polygon points="42,14 45,3 37,10" fill="#505060" stroke="#303040" stroke-width="0.5"/>
+      <polygon points="19,12 16,5 22,10" fill="#f8d0e0"/>
+      <polygon points="41,12 44,5 38,10" fill="#f8d0e0"/>
+      <ellipse cx="22" cy="24" rx="5" ry="6" fill="#c0c0d0"/>
+      <ellipse cx="38" cy="24" rx="5" ry="6" fill="#c0c0d0"/>
+      <ellipse cx="22" cy="24" rx="3" ry="4" fill="#303040"/>
+      <ellipse cx="38" cy="24" rx="3" ry="4" fill="#303040"/>
+      <circle cx="23" cy="22" r="1.2" fill="white"/>
+      <circle cx="39" cy="22" r="1.2" fill="white"/>
+      <ellipse cx="30" cy="29" rx="3" ry="2" fill="#d06070"/>
+      <path d="M27 32 Q30 30 33 32" fill="none" stroke="#303040" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="18" y1="27" x2="7" y2="25" stroke="#808090" stroke-width="0.8"/>
+      <line x1="18" y1="29" x2="6" y2="29" stroke="#808090" stroke-width="0.8"/>
+      <line x1="42" y1="27" x2="53" y2="25" stroke="#808090" stroke-width="0.8"/>
+      <line x1="42" y1="29" x2="54" y2="29" stroke="#808090" stroke-width="0.8"/>
+      <path d="M14 40 Q12 50 16 56" fill="none" stroke="#303040" stroke-width="2" stroke-linecap="round"/>
+      <path d="M46 40 Q48 50 44 56" fill="none" stroke="#303040" stroke-width="2" stroke-linecap="round"/>
+      <path d="M48 38 Q56 32 58 24 Q54 28 50 30" fill="#505060" stroke="#303040" stroke-width="0.8"/>
+    </svg>`,
+
+    // Calico — playful, colorful patches
+    calico: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="36" rx="18" ry="16" fill="#f5e8d0"/>
+      <ellipse cx="22" cy="38" rx="8" ry="10" fill="#e07030"/>
+      <ellipse cx="36" cy="34" rx="7" ry="8" fill="#303030"/>
+      <ellipse cx="30" cy="24" rx="14" ry="13" fill="#f5e8d0"/>
+      <ellipse cx="24" cy="20" rx="6" ry="7" fill="#e07030"/>
+      <ellipse cx="36" cy="22" rx="5" ry="6" fill="#303030"/>
+      <polygon points="18,14 15,4 23,10" fill="#e07030" stroke="#c05010" stroke-width="0.5"/>
+      <polygon points="42,14 45,4 37,10" fill="#f5e8d0" stroke="#c8b090" stroke-width="0.5"/>
+      <ellipse cx="22" cy="24" rx="5" ry="6" fill="#604040"/>
+      <ellipse cx="38" cy="24" rx="5" ry="6" fill="#604040"/>
+      <ellipse cx="22" cy="23" rx="2.5" ry="3.5" fill="#c8a060"/>
+      <ellipse cx="38" cy="23" rx="2.5" ry="3.5" fill="#c8a060"/>
+      <ellipse cx="22" cy="23" rx="1.2" ry="2.5" fill="#202020"/>
+      <ellipse cx="38" cy="23" rx="1.2" ry="2.5" fill="#202020"/>
+      <circle cx="23" cy="21" r="0.9" fill="white"/>
+      <circle cx="39" cy="21" r="0.9" fill="white"/>
+      <ellipse cx="30" cy="29" rx="3" ry="2" fill="#e07080"/>
+      <path d="M27 31 Q30 33.5 33 31" fill="none" stroke="#a06040" stroke-width="1" stroke-linecap="round"/>
+      <line x1="18" y1="27" x2="7" y2="25" stroke="#c8a080" stroke-width="0.8"/>
+      <line x1="18" y1="29" x2="6" y2="29" stroke="#c8a080" stroke-width="0.8"/>
+      <line x1="42" y1="27" x2="53" y2="25" stroke="#c8a080" stroke-width="0.8"/>
+      <line x1="42" y1="29" x2="54" y2="29" stroke="#c8a080" stroke-width="0.8"/>
+      <path d="M13 40 Q11 50 15 56" fill="none" stroke="#a06040" stroke-width="2" stroke-linecap="round"/>
+      <path d="M47 40 Q49 50 45 56" fill="none" stroke="#a06040" stroke-width="2" stroke-linecap="round"/>
+      <path d="M48 38 Q56 34 57 24 Q53 28 49 30" fill="#f5e8d0" stroke="#c8a080" stroke-width="0.8"/>
+    </svg>`,
+
+    // Black cat — sleek, mysterious
+    black: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="36" rx="18" ry="16" fill="#1a1a28"/>
+      <ellipse cx="30" cy="24" rx="14" ry="13" fill="#1a1a28"/>
+      <polygon points="18,14 14,3 23,10" fill="#1a1a28" stroke="#2a2a3a" stroke-width="0.5"/>
+      <polygon points="42,14 46,3 37,10" fill="#1a1a28" stroke="#2a2a3a" stroke-width="0.5"/>
+      <polygon points="19,12 16,5 22,10" fill="#e090a0"/>
+      <polygon points="41,12 44,5 38,10" fill="#e090a0"/>
+      <ellipse cx="22" cy="24" rx="5.5" ry="6.5" fill="#d0a020"/>
+      <ellipse cx="38" cy="24" rx="5.5" ry="6.5" fill="#d0a020"/>
+      <ellipse cx="22" cy="24" rx="2" ry="4" fill="#101018"/>
+      <ellipse cx="38" cy="24" rx="2" ry="4" fill="#101018"/>
+      <circle cx="23.5" cy="22" r="1.2" fill="white"/>
+      <circle cx="39.5" cy="22" r="1.2" fill="white"/>
+      <ellipse cx="30" cy="29" rx="3" ry="2" fill="#e090a0"/>
+      <path d="M27 31.5 Q30 33 33 31.5" fill="none" stroke="#3a3a4a" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="18" y1="27" x2="6" y2="25" stroke="#3a3a4a" stroke-width="0.9"/>
+      <line x1="18" y1="29" x2="5" y2="29" stroke="#3a3a4a" stroke-width="0.9"/>
+      <line x1="42" y1="27" x2="54" y2="25" stroke="#3a3a4a" stroke-width="0.9"/>
+      <line x1="42" y1="29" x2="55" y2="29" stroke="#3a3a4a" stroke-width="0.9"/>
+      <path d="M13 40 Q11 50 15 56" fill="none" stroke="#2a2a3a" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M47 40 Q49 50 45 56" fill="none" stroke="#2a2a3a" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M48 38 Q58 32 59 20 Q54 28 50 30" fill="#1a1a28" stroke="#2a2a3a" stroke-width="0.8"/>
+    </svg>`,
+
+    // Ginger — round, fluffy, innocent
+    ginger: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="36" rx="20" ry="17" fill="#e8b060"/>
+      <ellipse cx="30" cy="24" rx="16" ry="14" fill="#e8b060"/>
+      <ellipse cx="30" cy="26" rx="9" ry="11" fill="#f8d898"/>
+      <polygon points="17,13 13,2 22,9" fill="#e8b060" stroke="#c08840" stroke-width="0.5"/>
+      <polygon points="43,13 47,2 38,9" fill="#e8b060" stroke="#c08840" stroke-width="0.5"/>
+      <polygon points="18,11 15,4 22,9" fill="#f8c0b0"/>
+      <polygon points="42,11 45,4 38,9" fill="#f8c0b0"/>
+      <ellipse cx="22" cy="23" rx="5.5" ry="6" fill="#80b040"/>
+      <ellipse cx="38" cy="23" rx="5.5" ry="6" fill="#80b040"/>
+      <ellipse cx="22" cy="23" rx="2.2" ry="3.5" fill="#1a2010"/>
+      <ellipse cx="38" cy="23" rx="2.2" ry="3.5" fill="#1a2010"/>
+      <circle cx="23" cy="21" r="1.2" fill="white"/>
+      <circle cx="39" cy="21" r="1.2" fill="white"/>
+      <ellipse cx="30" cy="28" rx="3.5" ry="2.5" fill="#e08090"/>
+      <path d="M26 30.5 Q30 33 34 30.5" fill="none" stroke="#c08840" stroke-width="1" stroke-linecap="round"/>
+      <line x1="18" y1="26" x2="6" y2="24" stroke="#c08840" stroke-width="0.9"/>
+      <line x1="18" y1="28" x2="5" y2="28" stroke="#c08840" stroke-width="0.9"/>
+      <line x1="18" y1="30" x2="6" y2="32" stroke="#c08840" stroke-width="0.9"/>
+      <line x1="42" y1="26" x2="54" y2="24" stroke="#c08840" stroke-width="0.9"/>
+      <line x1="42" y1="28" x2="55" y2="28" stroke="#c08840" stroke-width="0.9"/>
+      <line x1="42" y1="30" x2="54" y2="32" stroke="#c08840" stroke-width="0.9"/>
+      <path d="M12 40 Q10 51 14 57" fill="none" stroke="#c08840" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M48 40 Q50 51 46 57" fill="none" stroke="#c08840" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M50 38 Q58 32 59 22 Q55 28 51 30" fill="#e8b060" stroke="#c08840" stroke-width="0.8"/>
+    </svg>`,
+
+    // Blue-grey — cool, aloof
+    grey: `<svg width="${w}" height="${h}" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="30" cy="36" rx="18" ry="16" fill="#8898b0"/>
+      <ellipse cx="30" cy="24" rx="14" ry="13" fill="#8898b0"/>
+      <ellipse cx="30" cy="25" rx="8" ry="10" fill="#c8d4e0"/>
+      <polygon points="18,14 15,3 23,10" fill="#8898b0" stroke="#6878a0" stroke-width="0.5"/>
+      <polygon points="42,14 45,3 37,10" fill="#8898b0" stroke="#6878a0" stroke-width="0.5"/>
+      <polygon points="19,12 16,5 22,10" fill="#f0c0d0"/>
+      <polygon points="41,12 44,5 38,10" fill="#f0c0d0"/>
+      <ellipse cx="22" cy="24" rx="5" ry="6" fill="#6090d0"/>
+      <ellipse cx="38" cy="24" rx="5" ry="6" fill="#6090d0"/>
+      <ellipse cx="22" cy="24" rx="2.5" ry="4" fill="#182840"/>
+      <ellipse cx="38" cy="24" rx="2.5" ry="4" fill="#182840"/>
+      <circle cx="23" cy="22" r="1" fill="white"/>
+      <circle cx="39" cy="22" r="1" fill="white"/>
+      <ellipse cx="30" cy="29" rx="3" ry="2" fill="#d080a0"/>
+      <path d="M27 31 Q30 32.5 33 31" fill="none" stroke="#6878a0" stroke-width="1" stroke-linecap="round"/>
+      <line x1="18" y1="27" x2="7" y2="25" stroke="#a0b0c0" stroke-width="0.8"/>
+      <line x1="18" y1="29" x2="6" y2="29" stroke="#a0b0c0" stroke-width="0.8"/>
+      <line x1="42" y1="27" x2="53" y2="25" stroke="#a0b0c0" stroke-width="0.8"/>
+      <line x1="42" y1="29" x2="54" y2="29" stroke="#a0b0c0" stroke-width="0.8"/>
+      <path d="M14 40 Q12 50 16 56" fill="none" stroke="#6878a0" stroke-width="2" stroke-linecap="round"/>
+      <path d="M46 40 Q48 50 44 56" fill="none" stroke="#6878a0" stroke-width="2" stroke-linecap="round"/>
+      <path d="M48 38 Q56 32 57 22 Q53 28 49 30" fill="#8898b0" stroke="#6878a0" stroke-width="0.8"/>
+    </svg>`,
+  };
+  return cats[type] || cats.orange;
+}
+
+// Small inline version for key chips
+function catChip(type) {
+  return catSVG(type, 20, 20);
+}
+
+// All cat types for cycling
+const CAT_TYPES = ['orange','tuxedo','calico','black','ginger','grey'];
+const CAT_NAMES = {
+  orange: 'Marmalade', tuxedo: 'Baron', calico: 'Patches',
+  black: 'Midnight', ginger: 'Biscuit', grey: 'Slate'
+};
+
+function randomCatType() {
+  return CAT_TYPES[Math.floor(Math.random() * CAT_TYPES.length)];
+}
+
+// ── Background animation ──────────────────────────────────────────────────────
+function initBackground() {
+  const layer = document.getElementById('bg-layer');
+
+  // Rising background cats
+  for (let i = 0; i < 12; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bg-cat-svg';
+    const type = CAT_TYPES[i % CAT_TYPES.length];
+    const size = 50 + Math.random() * 50;
+    wrap.innerHTML = catSVG(type, size, size);
+    wrap.style.left = Math.random() * 95 + 'vw';
+    wrap.style.animationDuration = (15 + Math.random() * 25) + 's';
+    wrap.style.animationDelay = (-Math.random() * 30) + 's';
+    layer.appendChild(wrap);
+  }
+
+  // Wandering corner cats
+  const positions = [
+    { style: 'top:10%;left:2%', dur: '14s', delay: '0s' },
+    { style: 'top:20%;right:2%', dur: '18s', delay: '-5s' },
+    { style: 'top:55%;left:1%', dur: '22s', delay: '-8s' },
+    { style: 'top:65%;right:1%', dur: '16s', delay: '-3s' },
+    { style: 'top:85%;left:3%', dur: '20s', delay: '-12s' },
+  ];
+
+  positions.forEach((pos, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'wander-cat';
+    wrap.style.cssText = pos.style + ';animation:wander' + i + ' ' + pos.dur + ' ease-in-out infinite ' + pos.delay;
+    wrap.innerHTML = catSVG(CAT_TYPES[i % CAT_TYPES.length], 52, 52);
+    document.getElementById('float-cats').appendChild(wrap);
+  });
+
+  // Inject wander keyframes
+  const style = document.createElement('style');
+  style.textContent = [0,1,2,3,4].map(i => {
+    const dx = (Math.random() * 40 - 20);
+    const dy = (Math.random() * 60 - 30);
+    return `@keyframes wander${i} {
+      0%   {transform:translate(0,0) rotate(-3deg)}
+      25%  {transform:translate(${dx}px,${dy}px) rotate(5deg)}
+      50%  {transform:translate(${-dx/2}px,${dy*1.5}px) rotate(-4deg)}
+      75%  {transform:translate(${dx*1.5}px,${dy/2}px) rotate(6deg)}
+      100% {transform:translate(0,0) rotate(-3deg)}
+    }`;
+  }).join('\n');
+  document.head.appendChild(style);
+
+  // Header cats
+  document.getElementById('header-cat-left').innerHTML = catSVG('orange', 64, 64);
+  document.getElementById('header-cat-right').innerHTML = catSVG('tuxedo', 64, 64);
+
+  // Stat card cats
+  document.getElementById('stat-cat-acc').innerHTML = catSVG('ginger', 32, 32);
+  document.getElementById('stat-cat-streak').innerHTML = catSVG('orange', 32, 32);
+  document.getElementById('stat-cat-errors').innerHTML = catSVG('black', 32, 32);
+  document.getElementById('stat-cat-drills').innerHTML = catSVG('grey', 32, 32);
+
+  // Heatmap stat cats
+  document.getElementById('h-cat1').innerHTML = catSVG('black', 28, 28);
+  document.getElementById('h-cat2').innerHTML = catSVG('tuxedo', 28, 28);
+  document.getElementById('h-cat3').innerHTML = catSVG('grey', 28, 28);
+  document.getElementById('h-cat4').innerHTML = catSVG('ginger', 28, 28);
+
+  // Guide cats
+  ['orange','tuxedo','calico','black','ginger','grey'].forEach((t,i) => {
+    const el = document.getElementById('guide-cat-' + (i+1));
+    if (el) el.innerHTML = catSVG(t, 40, 40);
+  });
+}
+
+// ── Keyboard data ─────────────────────────────────────────────────────────────
+const KB_ROWS = [
+  ['`','1','2','3','4','5','6','7','8','9','0','-','=','←'],
+  ['Tab','q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  ['Caps','a','s','d','f','g','h','j','k','l',';',"'",'↵'],
+  ['⇧','z','x','c','v','b','n','m',',','.','/','⇧'],
+  ['Ctrl','Alt','⎵','Alt','Ctrl']
+];
+const KEY_WIDTHS = { '←':'wide','Tab':'wide','\\':'wide','Caps':'wide','↵':'wider','⇧':'wider','⎵':'space','Ctrl':'wide','Alt':'wide' };
+const PROBLEM_KEYS = ['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m',',','.','/',';',"'",'-','=','[',']'];
+
+// ── Word banks ────────────────────────────────────────────────────────────────
+const WORDS = {
+  q:['quite','quick','query','queen','quiet'],w:['walk','work','write','wrap','word'],
+  e:['each','enter','event','edge','equal'],r:['reach','read','root','right','rust'],
+  t:['take','type','text','think','track'],y:['yield','year','yet','your','yellow'],
+  u:['under','unit','user','ultra','update'],i:['idea','into','item','inner','input'],
+  o:['open','order','output','object','often'],p:['port','push','path','place','power'],
+  a:['about','after','again','also','adapt'],s:['save','send','skill','some','stack'],
+  d:['data','debug','deep','define','driver'],f:['find','first','focus','from','function'],
+  g:['give','grid','grow','game','good'],h:['have','help','high','hold','handle'],
+  j:['join','just','jump','job','journal'],k:['keep','key','kernel','kit','kind'],
+  l:['learn','level','link','load','loop'],z:['zero','zone','zoom','zip','zenith'],
+  x:['next','text','exit','flux','exact'],c:['code','core','count','char','call'],
+  v:['value','void','valid','view','vector'],b:['build','byte','base','bit','buffer'],
+  n:['null','node','name','new','network'],m:['main','map','mode','match','make'],
+  ',':['input, output','read, write'],'.':['main.c','return 0.'],
+  '/':['src/main','usr/bin'],';':['int i;','return;'],
+};
+const GENERAL = ['the','and','for','are','but','not','you','all','can','had','one','our','out','day','get','has','him','how','new','now','see','two','way','who','its','did','say','she','use'];
+
+const ATTACK_PASSAGES = [
+  "type fast before the cats take over your keyboard and block all the keys you need to finish this sentence here",
+  "the quick brown fox jumps over the lazy dog while a cat watches planning its next keyboard invasion carefully",
+  "every key you press is one step ahead of the cats approaching one by one ready to sit down on your keys",
+  "speed and accuracy are both your weapons against the invasion type each word before another cat arrives now",
+  "finish this passage and claim victory over the keyboard cats who thought they could stop your typing today"
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let drill = {
+  selectedKeys:[], text:'', typed:'',
+  errors:0, keystrokes:0, streak:0, bestStreak:0,
+  drillsDone:0, errorMap:{}, finished:false
+};
+
+let attack = {
+  text:'', typed:'', errors:0, keystrokes:0,
+  blockedKeys:{}, blockedCatTypes:{},
+  lives:3, catCount:0, maxCats:10,
+  catTimer:null, timeTimer:null,
+  gameActive:false, passageIdx:0, timeElapsed:0
+};
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const name = tab.dataset.tab;
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    if (name === 'heatmap') renderHeatmap();
+    if (name === 'attack') initAttackUI();
+  });
+});
+
+// ── Key grid ──────────────────────────────────────────────────────────────────
+function buildKeyGrid(gridId, selectedArr, blockedObj, onSelect) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  PROBLEM_KEYS.forEach(key => {
+    const chip = document.createElement('div');
+    chip.className = 'key-chip';
+    const lk = key.toLowerCase();
+    if (selectedArr && selectedArr.includes(key)) chip.classList.add('selected');
+    if (blockedObj && blockedObj[lk]) {
+      chip.classList.add('blocked');
+      const catType = attack.blockedCatTypes[lk] || 'orange';
+      chip.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px">${catChip(catType)}<span>${key}</span></span>`;
+    } else {
+      chip.textContent = key;
+    }
+    chip.addEventListener('click', () => onSelect(key));
+    grid.appendChild(chip);
+  });
+}
+
+// ── Text generation ───────────────────────────────────────────────────────────
+function generateDrillText(focusKeys) {
+  const words = [];
+  for (let i = 0; i < 24; i++) {
+    if (focusKeys.length > 0 && i % 2 === 0) {
+      const fk = focusKeys[i % focusKeys.length].toLowerCase();
+      const pool = WORDS[fk] || GENERAL;
+      words.push(pool[Math.floor(Math.random() * pool.length)]);
+    } else {
+      words.push(GENERAL[Math.floor(Math.random() * GENERAL.length)]);
+    }
+  }
+  return words.join(' ');
+}
+
+// ── Render text ───────────────────────────────────────────────────────────────
+function renderTextTo(displayId, text, typed, focusKeys, blockedKeys) {
+  const display = document.getElementById(displayId);
+  const fkSet = new Set((focusKeys||[]).map(k=>k.toLowerCase()));
+  const bkSet = new Set(Object.keys(blockedKeys||{}));
+  let html = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] === ' ' ? '&nbsp;' : text[i];
+    const isFocus = fkSet.has(text[i].toLowerCase());
+    const isBlocked = bkSet.has(text[i].toLowerCase()) && i >= typed.length;
+    let cls = 'char';
+    if (isFocus) cls += ' focus-key';
+    if (i === typed.length) cls += ' cursor';
+    else if (i < typed.length) cls += typed[i] === text[i] ? ' correct' : ' incorrect';
+    if (isBlocked) cls += ' blocked';
+    html += `<span class="${cls}">${isBlocked ? '?' : ch}</span>`;
+  }
+  display.innerHTML = html;
+  const cursor = display.querySelector('.cursor');
+  if (cursor) cursor.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+// ── DRILL ─────────────────────────────────────────────────────────────────────
+function newDrill() {
+  drill.text = generateDrillText(drill.selectedKeys);
+  drill.typed = ''; drill.errors = 0; drill.keystrokes = 0;
+  drill.streak = 0; drill.bestStreak = 0; drill.finished = false;
+  document.getElementById('hidden-input').value = '';
+  renderTextTo('text-display', drill.text, '', drill.selectedKeys, {});
+  updateDrillStats(); updateProgress(0);
+  updateDrillChip(); focusDrill();
+}
+
+function focusDrill() { document.getElementById('hidden-input').focus(); }
+
+document.getElementById('hidden-input').addEventListener('input', () => {
+  if (drill.finished) return;
+  const value = document.getElementById('hidden-input').value;
+  if (value.length < drill.typed.length) {
+    drill.typed = value;
+    renderTextTo('text-display', drill.text, drill.typed, drill.selectedKeys, {});
+    updateProgress(drill.typed.length / drill.text.length * 100);
+    return;
+  }
+  const newChar = value[value.length-1];
+  const expected = drill.text[drill.typed.length];
+  drill.keystrokes++;
+  if (newChar !== expected) {
+    drill.errors++; drill.streak = 0;
+    const ek = expected === ' ' ? 'space' : expected.toLowerCase();
+    drill.errorMap[ek] = (drill.errorMap[ek]||0)+1;
+    document.getElementById('typing-card').classList.add('shake');
+    setTimeout(() => document.getElementById('typing-card').classList.remove('shake'), 250);
+  } else {
+    drill.streak++;
+    if (drill.streak > drill.bestStreak) drill.bestStreak = drill.streak;
+  }
+  drill.typed = value;
+  if (drill.typed.length >= drill.text.length) { finishDrill(); return; }
+  renderTextTo('text-display', drill.text, drill.typed, drill.selectedKeys, {});
+  updateProgress(drill.typed.length / drill.text.length * 100);
+  updateDrillStats();
+});
+
+function finishDrill() {
+  drill.finished = true; drill.drillsDone++;
+  document.getElementById('drills-val').textContent = drill.drillsDone;
+  showDrillResults();
+  buildKeyGrid('key-grid-drill', drill.selectedKeys, {}, toggleDrillKey);
+}
+
+function updateDrillStats() {
+  const acc = drill.keystrokes === 0 ? '—' : Math.round(((drill.keystrokes-drill.errors)/drill.keystrokes)*100)+'%';
+  const accEl = document.getElementById('acc-val');
+  accEl.textContent = acc;
+  const n = parseInt(acc);
+  accEl.className = 'stat-value'+(isNaN(n)?'':n>=95?' good':n>=80?' warn':' bad');
+  document.getElementById('streak-val').textContent = drill.streak;
+  document.getElementById('errors-val').textContent = drill.errors;
+}
+
+function updateProgress(pct) {
+  document.getElementById('progress-fill').style.width = Math.min(100,pct)+'%';
+}
+
+function updateDrillChip() {
+  const chip = document.getElementById('drill-chip');
+  if (drill.selectedKeys.length > 0) {
+    chip.style.display = 'inline';
+    chip.textContent = 'focus: '+drill.selectedKeys.slice(0,4).join(' ')+(drill.selectedKeys.length>4?'+':'');
+    document.getElementById('drill-info').textContent = 'highlighted keys are your focus';
+  } else {
+    chip.style.display = 'none';
+    document.getElementById('drill-info').textContent = 'general drill — type carefully';
+  }
+}
+
+function toggleDrillKey(key) {
+  const idx = drill.selectedKeys.indexOf(key);
+  if (idx>=0) drill.selectedKeys.splice(idx,1); else drill.selectedKeys.push(key);
+  buildKeyGrid('key-grid-drill', drill.selectedKeys, {}, toggleDrillKey);
+  updateDrillChip();
+}
+
+function resetDrill() {
+  drill.typed=''; drill.errors=0; drill.keystrokes=0; drill.streak=0;
+  document.getElementById('hidden-input').value='';
+  renderTextTo('text-display', drill.text, '', drill.selectedKeys, {});
+  updateDrillStats(); updateProgress(0); focusDrill();
+}
+
+// ── RESULTS ───────────────────────────────────────────────────────────────────
+function showDrillResults() {
+  const acc = drill.keystrokes===0?0:Math.round(((drill.keystrokes-drill.errors)/drill.keystrokes)*100);
+  const grade = acc>=98?'S':acc>=95?'A':acc>=88?'B':acc>=75?'C':'D';
+  const catForGrade = {S:'ginger',A:'orange',B:'calico',C:'grey',D:'tuxedo'};
+  const ct = catForGrade[grade];
+
+  document.getElementById('result-cat-svg').innerHTML = catSVG(ct, 80, 80);
+  document.getElementById('result-grade').textContent = grade;
+  document.getElementById('result-grade').className = 'result-grade grade-'+grade.toLowerCase();
+  document.getElementById('r-acc').textContent = acc+'%';
+  document.getElementById('r-errors').textContent = drill.errors;
+  document.getElementById('r-streak').textContent = drill.bestStreak;
+  document.getElementById('r-chars').textContent = drill.typed.length;
+  document.getElementById('result-sub').textContent = drill.selectedKeys.length>0?'targeted drill — '+drill.selectedKeys.join(', '):'general drill';
+
+  const sorted = Object.entries(drill.errorMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const wr = document.getElementById('worst-row');
+  wr.innerHTML = sorted.length>0
+    ? sorted.map(([k,v])=>`<span class="worst-badge">${k} ×${v}</span>`).join('')
+    : '<span style="font-size:0.78rem;color:var(--ink3)">No repeated errors — great run!</span>';
+
+  const advice = acc>=95?`<strong>${CAT_NAMES[ct]} approves.</strong> Muscle memory is locking in. Keep drilling daily.`
+    :acc>=80?`<strong>${CAT_NAMES[ct]} is watching.</strong> Slow down another 10% and focus on those error keys.`
+    :`<strong>${CAT_NAMES[ct]} has seen worse.</strong> New keyboard phase — totally normal. Aim for 50% of normal speed.`;
+  document.getElementById('advice-box').innerHTML = advice;
+  document.getElementById('results-overlay').classList.add('visible');
+}
+
+function nextDrillFromResults() { closeResults(); newDrill(); }
+function closeResults() { document.getElementById('results-overlay').classList.remove('visible'); }
+
+// ── CAT ATTACK ────────────────────────────────────────────────────────────────
+function initAttackUI() {
+  renderLives(3);
+  renderCatSlots(0);
+  buildKeyGrid('key-grid-attack', [], {}, shooCat);
+  document.getElementById('attack-timer').textContent = '—';
+}
+
+function renderLives(n) {
+  const el = document.getElementById('attack-lives');
+  el.innerHTML = '';
+  for (let i=0; i<3; i++) {
+    const heart = document.createElement('span');
+    heart.style.fontSize = '1.3rem';
+    heart.textContent = i < n ? '❤️' : '🖤';
+    el.appendChild(heart);
+  }
+}
+
+function renderCatSlots(n) {
+  const slots = document.getElementById('cat-slots');
+  slots.innerHTML = '';
+  for (let i=0; i<attack.maxCats; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'cat-slot'+(i<n?' occupied':'');
+    if (i<n) {
+      const type = CAT_TYPES[i%CAT_TYPES.length];
+      slot.innerHTML = catSVG(type, 28, 28);
+    }
+    slots.appendChild(slot);
+  }
+}
+
+function startAttack() {
+  attack.text = ATTACK_PASSAGES[attack.passageIdx%ATTACK_PASSAGES.length];
+  attack.passageIdx++;
+  attack.typed=''; attack.errors=0; attack.keystrokes=0;
+  attack.blockedKeys={}; attack.blockedCatTypes={};
+  attack.catCount=0; attack.lives=3;
+  attack.gameActive=true; attack.timeElapsed=0;
+
+  document.getElementById('attack-input').value='';
+  renderTextTo('attack-display', attack.text, '', [], {});
+  renderLives(3); renderCatSlots(0);
+  updateBlockedChip();
+  buildKeyGrid('key-grid-attack', [], {}, shooCat);
+  document.getElementById('attack-info').textContent = 'type fast — cats are coming!';
+
+  clearInterval(attack.catTimer);
+  attack.catTimer = setInterval(sendCat, 4000);
+
+  clearInterval(attack.timeTimer);
+  attack.timeTimer = setInterval(() => {
+    attack.timeElapsed++;
+    const el = document.getElementById('attack-timer');
+    el.textContent = attack.timeElapsed+'s';
+    el.className = 'attack-timer'+(Object.keys(attack.blockedKeys).length>=7?' warn':'');
+  }, 1000);
+
+  focusAttack();
+}
+
+function sendCat() {
+  if (!attack.gameActive) return;
+  const available = PROBLEM_KEYS.filter(k=>!attack.blockedKeys[k.toLowerCase()]);
+  if (available.length===0) { endAttack(false); return; }
+
+  const remaining = attack.text.slice(attack.typed.length).toLowerCase();
+  const inText = available.filter(k=>remaining.includes(k.toLowerCase()));
+  const targetKey = inText.length>0
+    ? inText[Math.floor(Math.random()*Math.min(inText.length,5))]
+    : available[Math.floor(Math.random()*available.length)];
+
+  const catType = CAT_TYPES[Math.floor(Math.random()*CAT_TYPES.length)];
+  const lk = targetKey.toLowerCase();
+  attack.blockedKeys[lk] = catType;
+  attack.blockedCatTypes[lk] = catType;
+  attack.catCount = Math.min(attack.catCount+1, attack.maxCats);
+
+  showCatNotification(targetKey, catType);
+  buildKeyGrid('key-grid-attack', [], attack.blockedKeys, shooCat);
+  renderTextTo('attack-display', attack.text, attack.typed, [], attack.blockedKeys);
+  renderCatSlots(attack.catCount);
+  updateBlockedChip();
+
+  if (Object.keys(attack.blockedKeys).length>=10) setTimeout(()=>endAttack(false), 500);
+}
+
+function showCatNotification(key, catType) {
+  const notif = document.createElement('div');
+  notif.className = 'cat-notif';
+  notif.style.top = (80+Math.random()*180)+'px';
+  notif.innerHTML = catSVG(catType, 28, 28) + `<span><strong>${CAT_NAMES[catType]}</strong> sat on <kbd style="background:var(--cream2);border:1.5px solid var(--border);border-radius:4px;padding:1px 5px;font-family:monospace;font-size:0.75rem">${key}</kbd></span>`;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 2100);
+}
+
+function shooCat(key) {
+  const lk = key.toLowerCase();
+  if (!attack.blockedKeys[lk]) { toggleDrillKey(key); return; }
+  if (!attack.gameActive) return;
+
+  attack.lives = Math.max(0, attack.lives-1);
+  const catType = attack.blockedCatTypes[lk];
+  delete attack.blockedKeys[lk];
+  delete attack.blockedCatTypes[lk];
+  attack.catCount = Math.max(0, attack.catCount-1);
+
+  renderLives(attack.lives);
+  renderCatSlots(attack.catCount);
+  buildKeyGrid('key-grid-attack', [], attack.blockedKeys, shooCat);
+  renderTextTo('attack-display', attack.text, attack.typed, [], attack.blockedKeys);
+  updateBlockedChip();
+
+  const notif = document.createElement('div');
+  notif.className = 'cat-notif';
+  notif.style.top = (60+Math.random()*120)+'px';
+  notif.style.borderColor = 'var(--green)';
+  notif.innerHTML = catSVG(catType, 24, 24) + `<span>Shooed <strong>${CAT_NAMES[catType]||'cat'}</strong> off <strong>${key}</strong>! (-1 ❤️)</span>`;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 1500);
+
+  if (attack.lives <= 0) endAttack(false);
+}
+
+function updateBlockedChip() {
+  const n = Object.keys(attack.blockedKeys).length;
+  document.getElementById('blocked-chip').textContent = n+' key'+(n!==1?'s':'')+' blocked';
+  document.getElementById('blocked-chip').style.background = n===0?'#e8f5e0':n<5?'#fff0e0':'#fce8e8';
+  document.getElementById('blocked-chip').style.color = n===0?'var(--green)':n<5?'#c04000':'var(--red)';
+}
+
+function focusAttack() { document.getElementById('attack-input').focus(); }
+
+document.getElementById('attack-input').addEventListener('input', () => {
+  if (!attack.gameActive) return;
+  const value = document.getElementById('attack-input').value;
+  if (value.length < attack.typed.length) {
+    attack.typed = value;
+    renderTextTo('attack-display', attack.text, attack.typed, [], attack.blockedKeys);
+    return;
+  }
+  const newChar = value[value.length-1];
+  const expected = attack.text[attack.typed.length];
+  attack.keystrokes++;
+  if (newChar !== expected) {
+    attack.errors++;
+    document.getElementById('attack-card').classList.add('shake');
+    setTimeout(() => document.getElementById('attack-card').classList.remove('shake'), 250);
+  }
+  attack.typed = value;
+  if (attack.typed.length >= attack.text.length) { endAttack(true); return; }
+  renderTextTo('attack-display', attack.text, attack.typed, [], attack.blockedKeys);
+});
+
+function endAttack(won) {
+  attack.gameActive = false;
+  clearInterval(attack.catTimer);
+  clearInterval(attack.timeTimer);
+  const acc = attack.keystrokes===0?100:Math.round(((attack.keystrokes-attack.errors)/attack.keystrokes)*100);
+
+  if (won) {
+    for (let i=0; i<24; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'confetti-cat';
+        const type = CAT_TYPES[Math.floor(Math.random()*CAT_TYPES.length)];
+        el.innerHTML = catSVG(type, 32, 32);
+        el.style.left = Math.random()*95+'vw';
+        el.style.setProperty('--dur', (2+Math.random()*2)+'s');
+        el.style.animationDelay = (Math.random()*1.2)+'s';
+        document.body.appendChild(el);
+        setTimeout(()=>el.remove(), 4500);
+      }, i*60);
+    }
+    document.getElementById('win-cat').innerHTML = catSVG('ginger', 100, 100);
+    document.getElementById('win-sub').textContent = `Accuracy: ${acc}% | Time: ${attack.timeElapsed}s | Lives left: ${attack.lives}`;
+    document.getElementById('win-screen').classList.add('visible');
+  } else {
+    document.getElementById('gameover-cat').innerHTML = catSVG('black', 100, 100);
+    document.getElementById('gameover-sub').textContent = Object.keys(attack.blockedKeys).length>=10
+      ? 'Too many cats took over your keyboard!'
+      : 'You ran out of lives shooing cats!';
+    document.getElementById('gameover-stats').textContent = `Typed: ${attack.typed.length}/${attack.text.length} chars | Accuracy: ${acc}% | Time: ${attack.timeElapsed}s`;
+    document.getElementById('game-over').classList.add('visible');
+  }
+}
+
+function surrenderAttack() { if (attack.gameActive) endAttack(false); }
+
+function restartAttack() {
+  document.getElementById('game-over').classList.remove('visible');
+  document.getElementById('win-screen').classList.remove('visible');
+  startAttack();
+}
+
+// ── HEATMAP ───────────────────────────────────────────────────────────────────
+function renderHeatmap() {
+  const vis = document.getElementById('keyboard-visual');
+  vis.innerHTML = '';
+  KB_ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(key => {
+      const el = document.createElement('div');
+      el.className = 'kb-key'+(KEY_WIDTHS[key]?' '+KEY_WIDTHS[key]:'');
+      const lk = key==='⎵'?'space':key.toLowerCase();
+      const errs = drill.errorMap[lk]||0;
+      el.dataset.level = errs===0?0:errs<=2?1:errs<=5?2:3;
+      if (el.dataset.level==='3') {
+        el.innerHTML = catSVG('black', 22, 22);
+      } else {
+        el.textContent = key;
+      }
+      rowEl.appendChild(el);
+    });
+    vis.appendChild(rowEl);
+  });
+  const total = Object.values(drill.errorMap).reduce((a,b)=>a+b,0);
+  const sorted = Object.entries(drill.errorMap).sort((a,b)=>b[1]-a[1]);
+  const worst = sorted[0]?sorted[0][0]:'—';
+  const tk=drill.keystrokes,te=drill.errors;
+  const acc = tk===0?'—':Math.round(((tk-te)/tk)*100)+'%';
+  document.getElementById('h-total').textContent = total;
+  document.getElementById('h-worst').textContent = worst;
+  document.getElementById('h-drills').textContent = drill.drillsDone;
+  document.getElementById('h-acc').textContent = acc;
+}
+
+function clearHeatmap() {
+  drill.errorMap = {};
+  renderHeatmap();
+  buildKeyGrid('key-grid-drill', drill.selectedKeys, {}, toggleDrillKey);
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key==='Tab') { e.preventDefault(); newDrill(); }
+  if (e.key==='Escape') { closeResults(); resetDrill(); }
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+initBackground();
+buildKeyGrid('key-grid-drill', drill.selectedKeys, {}, toggleDrillKey);
+newDrill();
+</script>
+</body>
+</html>
